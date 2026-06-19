@@ -29,12 +29,12 @@ export async function getTransactionById(ownerId: string, transactionId: string)
 }
 
 async function validateProducts(ownerId: string, items: CreateTransactionInput['items']) {
-  const productIds = items.map(item => item.productId)
+  const uniqueProductIds = [...new Set(items.map(item => item.productId))]
   const products = await prisma.product.findMany({
-    where: { id: { in: productIds }, ownerId },
+    where: { id: { in: uniqueProductIds }, ownerId },
     include: { sizes: true },
   })
-  if (products.length !== productIds.length) {
+  if (products.length !== uniqueProductIds.length) {
     throw new NotFoundError('Salah satu produk tidak ditemukan')
   }
   return new Map(products.map(p => [p.id, p]))
