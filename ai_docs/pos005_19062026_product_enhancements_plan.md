@@ -5,328 +5,391 @@
 
 | # | Feature | Deskripsi |
 |---|---------|-----------|
-| E1 | Berat Produk | Field weight + unit (g/kg/ml/L) di Product |
-| E2 | Tanggal Kadaluarsa | Field expiryDate di Product, ditampilkan di listing |
-| E3 | Notifikasi Kadaluarsa | Badge warna di ProductsPage + alert card di Dashboard |
+| E1 | Berat Produk | Field weight + unit (g/kg/ml/L/pcs) di Product |
+| E2 | Tanggal Kadaluarsa | Field expiryDate di Product, badge warna di listing |
+| E3 | Notifikasi Kadaluarsa | Alert card di Dashboard + disable di cart |
 | E4 | Out of Stock Indicator | Badge "Habis" di ProductsPage + disable di cart |
+| E5 | Varian Produk | Dimensi varian bebas (corak, rasa, warna) × ukuran existing |
 
 **Keputusan desain:**
-- Expiry date level **Product** (bukan per-batch/StockMovement) — cukup untuk POS kecil-menengah
-- Weight sebagai `Float + unit String` (bukan free text) agar bisa diurutkan/difilter
-- OOS = semua varian/sizes stock = 0 (sudah bisa dihitung dari data existing, tidak butuh field baru)
-- Expiry threshold: **Expired** (merah), **≤ 7 hari** (merah muda), **8–30 hari** (kuning), **> 30 hari** (normal)
-- Dashboard: satu alert card "Produk Kadaluarsa / Hampir Kadaluarsa" jika ada yang perlu perhatian
+- Expiry level **Product** (bukan per-batch)
+- Weight = `Float + unit String`
+- OOS = semua combo sizes.stock = 0
+- Expiry threshold: Expired (merah) / ≤7H (rose) / 8–30H (kuning) / >30H (hijau subtle)
+- Varian: **Opsi A** — extend `ProductSize` dengan field `variantName String @default("")`
+- Varian + Ukuran = keduanya opsional, bisa dipakai salah satu atau keduanya
+- Menambah ukuran baru → buat 1 entry per varian yang ada (atau 1 entry jika tidak ada varian)
+- Menambah varian baru → buat 1 entry per ukuran yang ada (atau 1 entry jika tidak ada ukuran)
+- Menghapus ukuran "M" → hapus SEMUA ProductSize entry dengan name="M" untuk produk itu
+- Menghapus varian "Corak Singa" → hapus SEMUA entry dengan variantName="Corak Singa"
+- Report sudah otomatis beda per combo karena pakai `productSizeId` di TransactionItem
+
+---
+
+## Schema Changes (semua di Phase 1)
+
+### `Product` — tambah 3 field baru + 1 field varian
+
+```prisma
+model Product {
+  ...existing fields...
+  weight       Float?    // nilai numerik, null = tidak diset
+  weightUnit   String?   // "g" | "kg" | "ml" | "L" | "pcs"
+  expiryDate   DateTime? // null = tidak ada kadaluarsa
+  variantLabel String?   // label dimensi varian, mis. "Warna", "Corak", "Rasa"
+                         // null = tidak pakai varian
+}
+```
+
+### `ProductSize` — tambah variantName + ubah unique constraint
+
+```prisma
+model ProductSize {
+  id        String  @id @default(uuid())
+  productId String
+  name      String          // ukuran: "S", "M", "XL", "Default"
+  variantName String @default("") // varian: "Corak Singa", "Ayam", "" = tidak ada varian
+  stock     Int     @default(0)
+  sku       String?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, name, variantName])  // ganti dari @@unique([productId, name])
+}
+```
+
+**Migrasi**: `npx prisma db push` — backward compatible karena `variantName` default `""`.
+Existing data: `name="S", variantName=""` → tetap valid dan unique.
 
 ---
 
 ## Phase 1: Schema + Backend
 
-### 1.1 Schema Changes — `prisma/schema.prisma`
-
-Tambah 3 field ke model `Product`:
-
-```prisma
-model Product {
-  ...existing fields...
-  weight      Float?          // nilai numerik, null = tidak diset
-  weightUnit  String?         // "g" | "kg" | "ml" | "L" | "pcs"
-  expiryDate  DateTime?       // null = produk tanpa kadaluarsa
-  ...relations...
-}
-```
-
-Jalankan:
-```bash
-cd pos-lite/server && npx prisma db push
-```
-
-Tidak ada breaking change — semua field nullable/optional.
+### 1.1 Schema
+Terapkan perubahan di atas ke `prisma/schema.prisma`, lalu `npx prisma db push`.
 
 ### 1.2 Backend — `products.types.ts`
 
-Update `createProductSchema` dan `updateProductSchema`:
-
+Tambah ke createProductSchema / updateProductSchema:
 ```typescript
-// Tambah ke createProductSchema
-weight:     z.number().min(0).nullable().optional(),
-weightUnit: z.enum(['g', 'kg', 'ml', 'L', 'pcs']).nullable().optional(),
-expiryDate: z.string().datetime().nullable().optional(),
-// datetime string dari frontend (ISO 8601), di-parse ke Date di service
+weight:       z.number().min(0).nullable().optional(),
+weightUnit:   z.enum(['g', 'kg', 'ml', 'L', 'pcs']).nullable().optional(),
+expiryDate:   z.string().datetime().nullable().optional(),
+variantLabel: z.string().max(50).nullable().optional(),
+```
+
+Update size schema (untuk createProduct / addSize):
+```typescript
+const sizeSchema = z.object({
+  name:        z.string().min(1),
+  variantName: z.string().default(''),
+  stock:       z.number().int().min(0).default(0),
+  sku:         z.string().nullable().optional(),
+})
+```
+
+Tambah schema baru untuk operasi varian:
+```typescript
+export const addVariantSchema = z.object({
+  variantName: z.string().min(1, 'Nama varian wajib diisi'),
+})
+export const addSizeNameSchema = z.object({
+  sizeName: z.string().min(1, 'Nama ukuran wajib diisi'),
+})
 ```
 
 ### 1.3 Backend — `products.service.ts`
 
-Update `createProduct` dan `updateProduct` agar pass field baru ke Prisma:
+Update `createProduct` dan `updateProduct` — pass field baru:
 ```typescript
 data: {
-  ...existing fields...
-  weight:     input.weight ?? null,
-  weightUnit: input.weightUnit ?? null,
-  expiryDate: input.expiryDate ? new Date(input.expiryDate) : null,
+  ...existing,
+  weight:       input.weight ?? null,
+  weightUnit:   input.weightUnit ?? null,
+  expiryDate:   input.expiryDate ? new Date(input.expiryDate) : null,
+  variantLabel: input.variantLabel ?? null,
 }
 ```
 
-### 1.4 Backend — Endpoint baru: `GET /products/expiring`
-
-Tambah ke `products.service.ts`:
+Update size creation: `sizes` input sekarang include `variantName`:
 ```typescript
-export async function getExpiringProducts(ownerId: string, withinDays = 30) {
-  const threshold = new Date()
-  threshold.setDate(threshold.getDate() + withinDays)
-
-  return prisma.product.findMany({
-    where: {
-      ownerId,
-      expiryDate: { not: null, lte: threshold },
-    },
-    include: { sizes: true, category: true },
-    orderBy: { expiryDate: 'asc' },
-  })
-}
+// Saat createProduct, untuk setiap size di input.sizes:
+prisma.productSize.create({
+  data: { productId, name: s.name, variantName: s.variantName ?? '', stock: s.stock, sku: s.sku }
+})
 ```
 
-Tambah ke `products.controller.ts`:
+**Fungsi baru: `addVariant(ownerId, productId, variantName)`**
 ```typescript
-getExpiring: async (req, res, next) => {
-  const days = parseInt(req.query.days as string) || 30
-  const products = await productsService.getExpiringProducts(req.owner!.id, days)
-  res.json({ success: true, data: products })
-}
+// 1. Ambil semua unique size names dari ProductSize produk ini
+// 2. Untuk setiap size name, buat ProductSize baru dengan variantName yang diberikan
+// 3. Jika tidak ada size name sama sekali (produk baru): buat 1 entry { name: 'Default', variantName }
+// 4. Return list ProductSize yang baru dibuat
 ```
 
-Tambah ke `products.routes.ts` — **SEBELUM `/:id`**:
+**Fungsi baru: `addSizeName(ownerId, productId, sizeName)`**
+```typescript
+// 1. Ambil semua unique variantNames dari ProductSize produk ini
+// 2. Untuk setiap variantName, buat ProductSize baru dengan sizeName yang diberikan
+// 3. Jika tidak ada variant: buat 1 entry { name: sizeName, variantName: '' }
+```
+
+**Fungsi baru: `deleteVariant(ownerId, productId, variantName)`**
+```typescript
+// deleteMany: WHERE productId = X AND variantName = Y
+// Blokir jika ada TransactionItem terkait (integritas data)
+// Return jumlah entry yang dihapus
+```
+
+**Fungsi baru: `deleteSizeName(ownerId, productId, sizeName)`**
+```typescript
+// deleteMany: WHERE productId = X AND name = Y
+// Blokir jika ada TransactionItem terkait
+```
+
+**Fungsi baru: `getExpiringProducts(ownerId, withinDays)`** (seperti plan lama)
+
+### 1.4 Backend — `products.controller.ts`
+
+Tambah handlers:
+- `addVariant` — POST /products/:id/variants
+- `deleteVariant` — DELETE /products/:id/variants/:variantName
+- `addSizeName` — POST /products/:id/size-names
+- `deleteSizeName` — DELETE /products/:id/size-names/:sizeName
+- `getExpiring` — GET /products/expiring
+
+### 1.5 Backend — `products.routes.ts`
+
+Tambah routes **SEBELUM** `/:id`:
 ```typescript
 router.get('/expiring', productsController.getExpiring)
+router.post('/:id/variants', productsController.addVariant)
+router.delete('/:id/variants/:variantName', productsController.deleteVariant)
+router.post('/:id/size-names', productsController.addSizeName)
+router.delete('/:id/size-names/:sizeName', productsController.deleteSizeName)
 ```
 
 ---
 
-## Phase 2: Product Form + Listing UI
+## Phase 2: ProductForm + ProductsPage
 
 ### 2.1 Frontend — `types/index.ts`
 
-Update interface `Product`:
+Update `Product`:
 ```typescript
-export interface Product {
-  ...existing fields...
-  weight?: number | null
-  weightUnit?: 'g' | 'kg' | 'ml' | 'L' | 'pcs' | null
-  expiryDate?: string | null   // ISO string dari API
-}
+weight?:       number | null
+weightUnit?:   'g' | 'kg' | 'ml' | 'L' | 'pcs' | null
+expiryDate?:   string | null
+variantLabel?: string | null
+```
+
+Update `ProductSize`:
+```typescript
+variantName: string   // "" = tidak ada varian
 ```
 
 ### 2.2 Frontend — `api/products.ts`
 
 Tambah:
 ```typescript
-export async function getExpiringProducts(withinDays = 30): Promise<Product[]> {
-  const response = await api.get('/products/expiring', { params: { days: withinDays } })
-  return response.data.data
-}
+export async function addVariant(productId: string, variantName: string): Promise<ProductSize[]>
+export async function deleteVariant(productId: string, variantName: string): Promise<void>
+export async function addSizeName(productId: string, sizeName: string): Promise<ProductSize[]>
+export async function deleteSizeName(productId: string, sizeName: string): Promise<void>
+export async function getExpiringProducts(withinDays?: number): Promise<Product[]>
 ```
 
-### 2.3 Frontend — `ProductForm.tsx`
+### 2.3 Frontend — `ProductForm.tsx` (revisi besar)
 
-Tambah 2 section baru sebelum tombol submit:
-
-#### Section: Berat
+#### Field baru: Berat + Kadaluarsa + Label Varian
+Tambah di bawah field existing (sebelum bagian Sizes):
 ```tsx
-// Row dengan 2 input: angka (weight) + select (weightUnit)
-// Label: "Berat Produk (opsional)"
-// Input number, placeholder "500"
-// Select: g | kg | ml | L | pcs
-// Default unit: g
+// Berat: 2 input inline — angka (weight) + select unit (g/kg/ml/L/pcs)
+// Kadaluarsa: input type="date", hint "Kosongkan jika tidak ada kadaluarsa"
+// Label Varian: input text, placeholder "Corak, Warna, Rasa..." hint "Label dimensi varian (opsional)"
 ```
 
-#### Section: Tanggal Kadaluarsa
+#### Revisi seksi "Ukuran & Varian" — ganti seksi Sizes lama
+
+Saat ini ada tabel sizes. Revisi menjadi **2 bagian terpisah**:
+
+**Bagian A — Kelola Ukuran:**
 ```tsx
-// Input type="date" untuk expiryDate
-// Label: "Tanggal Kadaluarsa (opsional)"
-// Hint: "Kosongkan jika produk tidak memiliki tanggal kadaluarsa"
-// Konversi: value date input ke ISO string saat submit
+// Chips: setiap unique size name yang ada di product.sizes
+// + button "Tambah Ukuran" → input text inline → panggil addSizeName mutation
+// × pada chip → konfirmasi → panggil deleteSizeName mutation
+// Contoh chips: [S ×] [M ×] [L ×] [+ Tambah Ukuran]
 ```
 
-Update `defaultValues` dan `reset()` di useEffect:
-```typescript
-weight: product.weight ?? null,
-weightUnit: product.weightUnit ?? 'g',
-expiryDate: product.expiryDate
-  ? new Date(product.expiryDate).toISOString().split('T')[0]  // format YYYY-MM-DD
-  : '',
+**Bagian B — Kelola Varian** (hanya muncul jika variantLabel diisi):
+```tsx
+// Chips: setiap unique variantName yang ada di product.sizes (filter "" keluar)
+// + button "Tambah Varian" → input text inline → panggil addVariant mutation
+// × pada chip → konfirmasi → panggil deleteVariant mutation
+// Contoh chips: [Corak Singa ×] [Corak Buaya ×] [+ Tambah Varian]
+```
+
+**Bagian C — Grid Kombinasi** (hanya muncul jika ada keduanya):
+```tsx
+// Tabel kecil readonly untuk preview:
+// Baris = ukuran, Kolom = varian
+// Tiap sel: stok (dari sizes yang match name + variantName)
+// Ini hanya display — edit stok tetap lewat Restock modal
+//
+// Contoh:
+//        Corak Singa   Corak Buaya
+// S          5              3
+// M          0              7  ← badge "Habis"
+// L          2              1
+```
+
+**Bagian D — Individual sizes** (untuk produk tanpa kombinasi):
+```tsx
+// Tetap tampilkan tabel sizes individual untuk edit SKU, seperti sekarang
+// Hanya tampil jika tidak ada variantLabel (produk sederhana)
 ```
 
 ### 2.4 Frontend — `ProductsPage.tsx`
 
-#### Kolom baru di tabel: Berat + Kadaluarsa
+#### Kolom tabel — revisi grid
 
+Kolom baru yang ditambahkan:
+| Kolom | Isi |
+|-------|-----|
+| Varian | Chips kecil per unique variantName, atau "-" |
+| Ukuran | Jumlah ukuran: "3 ukuran" atau nama jika hanya 1 |
+| Stok | Total stok semua combo + badge OOS |
+| Berat | "{weight} {unit}" atau "-" |
+| Kadaluarsa | ExpiryBadge |
+
+#### Helper `getExpiryStatus` + komponen `ExpiryBadge`
+(sama seperti plan lama — see Implementation Notes)
+
+#### Filter bar
 ```tsx
-// Kolom Berat: "{weight} {weightUnit}" atau "-" jika null
-// Kolom Kadaluarsa: ExpiryBadge component (lihat bawah)
+// Search (existing) + dropdown filter:
+// "Semua" | "Hampir Kadaluarsa" | "Kadaluarsa" | "Stok Habis"
+// Client-side filter
 ```
 
-#### Helper function `getExpiryStatus(expiryDate: string | null | undefined)`
-
-```typescript
-type ExpiryStatus = 'none' | 'ok' | 'warning' | 'soon' | 'expired'
-
-function getExpiryStatus(expiryDate: string | null | undefined): ExpiryStatus {
-  if (!expiryDate) return 'none'
-  const now = new Date()
-  const expiry = new Date(expiryDate)
-  const daysUntil = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-  if (daysUntil < 0)  return 'expired'    // sudah lewat
-  if (daysUntil <= 7) return 'soon'       // ≤ 7 hari
-  if (daysUntil <= 30) return 'warning'   // 8–30 hari
-  return 'ok'                              // > 30 hari
-}
-```
-
-#### Komponen `ExpiryBadge`
-
+#### Badge OOS
 ```tsx
-// 'none'    → "-" (teks abu, tidak ada badge)
-// 'ok'      → tanggal saja, teks hijau kecil
-// 'warning' → badge kuning "30 Hari" + tanggal
-// 'soon'    → badge merah muda "7 Hari!" + tanggal
-// 'expired' → badge merah "Kadaluarsa!" + tanggal
-```
-
-#### Filter tambahan di ProductsPage
-
-Tambah ke filter bar yang sudah ada (di samping search):
-```tsx
-// Dropdown/toggle filter: "Semua" | "Hampir Kadaluarsa" | "Kadaluarsa" | "Stok Habis"
-// Filter dilakukan di frontend (client-side) dari data products yang sudah di-fetch
-// Tidak perlu endpoint baru
-```
-
-#### Out of Stock Badge
-
-```tsx
-// Di kolom Stok atau nama produk:
-// Jika semua sizes.every(s => s.stock === 0) → Badge merah "Habis"
-// Jika beberapa sizes stock = 0 tapi tidak semua → Badge kuning "Sebagian Habis"
+// Jika semua sizes.stock === 0 → Badge merah "Habis"
+// Jika sebagian → Badge kuning "Sebagian Habis"
 ```
 
 ---
 
-## Phase 3: Dashboard Alerts + Cart Integration
+## Phase 3: RecordSalePage + Dashboard
 
-### 3.1 Frontend — Dashboard Alert Card
+### 3.1 Frontend — `RecordSalePage.tsx` — Variant+Size selector
 
-Tambah di `DashboardPage.tsx` (di bagian atas, sebelum stat cards):
+Saat ini: klik produk → pilih ukuran → tambah ke cart.
+
+Dengan varian:
+```tsx
+// Jika produk punya variantLabel:
+//   Step 1 → pilih varian (chips/dropdown dari unique variantNames)
+//   Step 2 → pilih ukuran yang tersedia untuk varian itu
+//   Hanya tampilkan size chips yang stoknya > 0 untuk varian terpilih
+//
+// Jika produk hanya ukuran (tidak ada variantLabel):
+//   → Perilaku sama seperti sekarang
+//
+// Jika produk hanya varian (tidak ada sizes selain Default):
+//   → Pilih varian langsung (tanpa step ukuran)
+//
+// Jika tidak keduanya: → Langsung tambah (Default)
+```
+
+Display di CartItem: `{variantName ? variantName + ' / ' : ''}{name !== 'Default' ? name : ''}`
+
+OOS: tombol "Tambah" disabled jika stok combo = 0.
+Kadaluarsa: disabled + badge merah jika `product.expiryDate` sudah lewat.
+
+### 3.2 Frontend — `DashboardPage.tsx` — Expiry Alert Card
 
 ```tsx
 // useQuery(['products', 'expiring'], () => getExpiringProducts(30))
-// Jika ada hasil: tampilkan alert card
-// Layout: ikon ⚠️ + teks "X produk hampir kadaluarsa dalam 30 hari"
-//         link "Lihat semua" → navigate ke /products dengan filter kadaluarsa
-// Jika expired (tanggal sudah lewat): card merah "X produk sudah kadaluarsa!"
-// Jika tidak ada: card tidak ditampilkan sama sekali
-```
-
-```tsx
-// AlertCard component:
-function ExpiryAlertCard({ products }: { products: Product[] }) {
-  const expired = products.filter(p => getExpiryStatus(p.expiryDate) === 'expired')
-  const soon = products.filter(p => ['soon', 'warning'].includes(getExpiryStatus(p.expiryDate)))
-
-  if (products.length === 0) return null
-
-  return (
-    <div className={clsx('rounded-lg p-4 flex items-center justify-between mb-4',
-      expired.length > 0 ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'
-    )}>
-      {/* isi: icon + teks + link */}
-    </div>
-  )
-}
-```
-
-### 3.2 Frontend — RecordSalePage / Cart Integration
-
-Update `RecordSalePage.tsx` (di bagian product grid / search results):
-
-#### Out of Stock
-```tsx
-// Produk dengan semua sizes.stock = 0:
-// - Tampilkan dengan opacity-50
-// - Tombol "Tambah" disabled
-// - Badge "Habis" di atas gambar/card
-```
-
-#### Produk Kadaluarsa
-```tsx
-// Produk dengan expiryDate sudah lewat:
-// - Tampilkan dengan overlay merah ringan
-// - Tombol "Tambah" disabled
-// - Badge "Kadaluarsa" merah
-// - Jika owner tetap ingin jual (edge case): bisa override dengan konfirmasi
-//   → tidak diimplementasi Phase 3, cukup disable saja
-```
-
-#### Produk Hampir Kadaluarsa (opsional warning)
-```tsx
-// Jika expiryDate ≤ 7 hari: tampilkan badge kuning "Exp: Xd" di card
-// Tidak disable — masih bisa dijual, hanya info
+// Tampil jika ada data, tersembunyi jika tidak ada
+// Card merah: X produk SUDAH kadaluarsa
+// Card kuning: X produk hampir kadaluarsa (≤30 hari)
+// Link → /products?filter=expiry
 ```
 
 ---
 
 ## File Checklist
 
-### Phase 1 — Backend
-- [ ] `pos-lite/server/prisma/schema.prisma` — tambah weight, weightUnit, expiryDate ke Product
-- [ ] `prisma db push` — sync schema
-- [ ] `products.types.ts` — tambah field ke schema validasi
-- [ ] `products.service.ts` — pass field baru + fungsi `getExpiringProducts`
-- [ ] `products.controller.ts` — tambah handler `getExpiring`
-- [ ] `products.routes.ts` — tambah `GET /expiring` sebelum `/:id`
+### Phase 1 — Backend + Schema
+- [ ] `prisma/schema.prisma` — weight, weightUnit, expiryDate, variantLabel ke Product; variantName ke ProductSize; ubah @@unique
+- [ ] `npx prisma db push`
+- [ ] `products.types.ts` — update schemas
+- [ ] `products.service.ts` — pass fields baru + 5 fungsi baru (addVariant, deleteVariant, addSizeName, deleteSizeName, getExpiringProducts)
+- [ ] `products.controller.ts` — 5 handler baru + getExpiring
+- [ ] `products.routes.ts` — 5 route baru sebelum /:id
 
 ### Phase 2 — Product UI
-- [ ] `types/index.ts` — update Product interface
-- [ ] `api/products.ts` — tambah `getExpiringProducts`
-- [ ] `features/products/ProductForm.tsx` — field weight + weightUnit + expiryDate
-- [ ] `features/products/ProductsPage.tsx` — ExpiryBadge, OOS badge, filter dropdown
+- [ ] `types/index.ts` — update Product + ProductSize interface
+- [ ] `api/products.ts` — 5 fungsi baru
+- [ ] `ProductForm.tsx` — field baru + revisi seksi Ukuran & Varian (4 bagian: chip ukuran, chip varian, grid preview, individual table)
+- [ ] `ProductsPage.tsx` — revisi kolom tabel, ExpiryBadge, OOS badge, filter dropdown
 
-### Phase 3 — Alerts & Cart
-- [ ] `features/dashboard/DashboardPage.tsx` — ExpiryAlertCard
-- [ ] `features/transactions/RecordSalePage.tsx` — disable OOS + expired di cart
+### Phase 3 — Cart + Dashboard
+- [ ] `RecordSalePage.tsx` — variant+size selector 2-step, OOS+expired disable
+- [ ] `DashboardPage.tsx` — ExpiryAlertCard
 
 ---
 
 ## Implementation Notes
 
-### Date handling
-- Backend menerima ISO string, convert ke `Date` saat simpan ke Prisma
-- Frontend input `type="date"` menghasilkan `YYYY-MM-DD`, perlu di-append `T00:00:00.000Z` atau convert sebelum kirim
-- Display: gunakan `date-fns` `format(new Date(expiryDate), 'dd MMM yyyy', { locale: id })`
-
-### Weight unit options
-Terbatas 5 opsi agar konsisten (tidak free text):
-- `g` — gram (makanan, bumbu)
-- `kg` — kilogram
-- `ml` — mililiter (minuman, cairan)
-- `L` — liter
-- `pcs` — satuan/pieces (barang yang tidak relevan dengan berat)
-
-### OOS calculation
-Tidak butuh field baru. OOS check:
+### variantName di cart display
 ```typescript
-const isOutOfStock = product.sizes.every(s => s.stock === 0)
-const isPartiallyOOS = product.sizes.some(s => s.stock === 0) && !isOutOfStock
+function getSizeLabel(size: ProductSize): string {
+  const parts = []
+  if (size.variantName) parts.push(size.variantName)
+  if (size.name !== 'Default') parts.push(size.name)
+  return parts.join(' / ') || 'Default'
+}
+// "Corak Singa / M", "Ayam", "L", "Default"
 ```
 
-Requires `sizes` di-include saat fetch products. Pastikan `getProducts` di service include `sizes`.
+### Unique sizes & variants dari product.sizes
+```typescript
+const uniqueSizes    = [...new Set(sizes.map(s => s.name).filter(n => n !== 'Default'))]
+const uniqueVariants = [...new Set(sizes.map(s => s.variantName).filter(v => v !== ''))]
+const hasVariants    = uniqueVariants.length > 0
+const hasSizes       = uniqueSizes.length > 0
+```
 
-### Expiry threshold summary
+### Delete safety — blokir jika ada transaksi
+```typescript
+// Sebelum deleteMany ProductSize, cek:
+const txCount = await prisma.transactionItem.count({
+  where: { productSizeId: { in: sizeIdsToDelete } }
+})
+if (txCount > 0) throw new ConflictError(
+  `Tidak bisa hapus — ada ${txCount} transaksi terkait`
+)
+```
+
+### Expiry threshold
 | Status | Kondisi | Warna |
 |--------|---------|-------|
-| `expired` | Tanggal sudah lewat | Merah `red` |
-| `soon` | ≤ 7 hari lagi | Merah muda `rose` |
-| `warning` | 8–30 hari lagi | Kuning `yellow` |
-| `ok` | > 30 hari | Hijau `green` (subtle) |
-| `none` | Tidak ada expiry date | Abu `-` |
+| `expired` | Sudah lewat | Merah `red` |
+| `soon` | ≤ 7 hari | Rose `rose` |
+| `warning` | 8–30 hari | Kuning `yellow` |
+| `ok` | > 30 hari | Hijau subtle `green` |
+| `none` | Tidak ada expiry | Abu `-` |
+
+### Weight units
+`g` · `kg` · `ml` · `L` · `pcs`
+
+### Backward compatibility
+- Semua existing ProductSize: `variantName = ""` (default) → tidak ada perubahan tampilan
+- Unique constraint lama `[productId, name]` → baru `[productId, name, variantName]`
+  - `("S", "")` tetap unique → existing data aman
+- `prisma db push` tanpa migration file — cocok untuk SQLite dev
 
 ---
 
@@ -334,6 +397,6 @@ Requires `sizes` di-include saat fetch products. Pastikan `getProducts` di servi
 
 | Phase | Backend | Frontend | Total |
 |-------|---------|----------|-------|
-| 1 | Schema + 1 endpoint baru | - | Kecil |
-| 2 | - | Form + listing badges + filter | Sedang |
-| 3 | - | Dashboard alert + cart disable | Kecil |
+| 1 | Schema + 5 fungsi + 5 route | - | Sedang |
+| 2 | - | ProductForm revisi besar + ProductsPage kolom | Besar |
+| 3 | - | RecordSalePage 2-step selector + Dashboard alert | Sedang |
