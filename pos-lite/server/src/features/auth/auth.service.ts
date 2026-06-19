@@ -28,9 +28,27 @@ export async function login(data: LoginInput): Promise<AuthResponse> {
 export async function getMe(ownerId: string) {
   const owner = await prisma.owner.findUnique({
     where: { id: ownerId },
-    select: { id: true, name: true, email: true, phone: true, waNumber: true, telegramChatId: true },
+    select: { id: true, name: true, email: true, phone: true, waNumber: true, telegramChatId: true, dailyTarget: true },
   })
 
   if (!owner) throw new NotFoundError('Owner tidak ditemukan')
   return owner
+}
+
+export async function getDailyTarget(ownerId: string) {
+  const owner = await prisma.owner.findUnique({
+    where: { id: ownerId },
+    select: { dailyTarget: true },
+  })
+  if (!owner) throw new NotFoundError('Owner tidak ditemukan')
+  return { dailyTarget: owner.dailyTarget ?? 0 }
+}
+
+export async function updateDailyTarget(ownerId: string, dailyTarget: number) {
+  const owner = await prisma.owner.update({
+    where: { id: ownerId },
+    data: { dailyTarget },
+    select: { dailyTarget: true },
+  })
+  return { dailyTarget: owner.dailyTarget ?? 0 }
 }

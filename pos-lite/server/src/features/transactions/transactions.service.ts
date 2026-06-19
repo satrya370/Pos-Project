@@ -3,18 +3,19 @@ import { NotFoundError, BadRequestError } from '../../lib/errors.js'
 import { generateInvoiceNumber } from '../../utils/invoice.js'
 import { CreateTransactionInput } from './transactions.types.js'
 
-export async function getTransactions(ownerId: string, startDate?: string, endDate?: string) {
+export async function getTransactions(ownerId: string, startDate?: string, endDate?: string, limit?: number) {
   const where: Record<string, unknown> = { ownerId }
   if (startDate || endDate) {
     where.createdAt = {}
     if (startDate) (where.createdAt as Record<string, Date>).gte = new Date(startDate)
-    if (endDate) (where.createdAt as Record<string, Date>).lte = new Date(endDate)
+    if (endDate) (where.createdAt as Record<string, Date>).lte = new Date(`${endDate}T23:59:59.999Z`)
   }
 
   return prisma.transaction.findMany({
     where,
     include: { items: true },
     orderBy: { createdAt: 'desc' },
+    ...(limit ? { take: limit } : {}),
   })
 }
 

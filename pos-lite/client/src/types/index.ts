@@ -5,6 +5,7 @@ export interface Owner {
   phone?: string | null
   waNumber?: string | null
   telegramChatId?: string | null
+  dailyTarget?: number | null
 }
 
 export interface LoginInput {
@@ -135,6 +136,11 @@ export interface ProductRank {
   revenue: number
 }
 
+export interface Comparison {
+  amount: number
+  percent: number
+}
+
 export interface DailyReport {
   date: string
   totalSales: number
@@ -143,6 +149,18 @@ export interface DailyReport {
   transactionsCount: number
   itemsSold: number
   topProducts: ProductRank[]
+  comparison: {
+    sales: Comparison
+    profit: Comparison
+    transactions: Comparison
+  }
+}
+
+export interface StockSummary {
+  totalStockValue: number
+  outOfStockCount: number
+  lowStockCount: number
+  deadStockProducts: { id: string; name: string; sizes: { id: string; name: string; stock: number }[] }[]
 }
 
 export interface DailyBreakdown {

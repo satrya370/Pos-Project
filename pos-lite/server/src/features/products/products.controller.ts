@@ -113,3 +113,21 @@ export async function restockSize(req: AuthRequest, res: Response, next: NextFun
     next(err)
   }
 }
+
+export async function getLowStockProducts(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const products = await productsService.getLowStockProducts(req.ownerId!)
+    res.json({ success: true, data: products })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getStockSummary(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const summary = await productsService.getStockSummary(req.ownerId!)
+    res.json({ success: true, data: summary })
+  } catch (err) {
+    next(err)
+  }
+}

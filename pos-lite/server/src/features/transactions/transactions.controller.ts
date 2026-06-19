@@ -4,11 +4,12 @@ import * as transactionsService from './transactions.service.js'
 
 export async function getTransactions(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { startDate, endDate } = req.query
+    const { startDate, endDate, limit } = req.query
     const transactions = await transactionsService.getTransactions(
       req.ownerId!,
       startDate as string | undefined,
       endDate as string | undefined,
+      limit ? parseInt(limit as string, 10) : undefined,
     )
     res.json({ success: true, data: transactions })
   } catch (err) {

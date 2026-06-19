@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma.js'
-import { DailyReport, WeeklyReport, MonthlyReport, TopProductsReport, ProductRank } from './reports.types.js'
+import { DailyReport, WeeklyReport, MonthlyReport, TopProductsReport, ProductRank, Comparison } from './reports.types.js'
 
 function getStartOfDay(dateStr: string): Date {
   return new Date(`${dateStr}T00:00:00.000Z`)
@@ -11,7 +11,17 @@ function getEndOfDay(dateStr: string): Date {
 
 function getDefaultDate(): string {
   const d = new Date()
+  return formatDateStr(d)
+}
+
+function formatDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function calcComparison(current: number, previous: number): Comparison {
+  const amount = current - previous
+  const percent = previous === 0 ? (current > 0 ? 100 : 0) : Math.round((amount / previous) * 100)
+  return { amount, percent }
 }
 
 function aggregateTransactions(transactions: { totalAmount: number; totalCost: number; profit: number; itemsCount: number }[]) {
@@ -27,33 +37,48 @@ function aggregateTransactions(transactions: { totalAmount: number; totalCost: n
   )
 }
 
-function mergeProductRanks(accumulator: Map<string, ProductRank>, item: { productId: string | null; productName: string; quantity: number; subtotal: number }) {
-  if (!item.productId) return
-  const existing = accumulator.get(item.productId)
-  if (existing) {
-    existing.quantity += item.quantity
-    existing.revenue += item.subtotal
-  } else {
-    accumulator.set(item.productId, {
-      productId: item.productId,
-      productName: item.productName,
-      quantity: item.quantity,
-      revenue: item.subtotal,
-    })
+function buildProductMap(items: { productId: string | null; productName: string; quantity: number; subtotal: number }[]): Map<string, ProductRank> {
+  const map = new Map<string, ProductRank>()
+  for (const item of items) {
+    if (!item.productId) continue
+    const existing = map.get(item.productId)
+    if (existing) {
+      existing.quantity += item.quantity
+      existing.revenue += item.subtotal
+    } else {
+      map.set(item.productId, {
+        productId: item.productId,
+        productName: item.productName,
+        quantity: item.quantity,
+        revenue: item.subtotal,
+      })
+    }
   }
+  return map
 }
 
 async function getTopProductsForPeriod(ownerId: string, start: Date, end: Date, limit: number): Promise<ProductRank[]> {
   const items = await prisma.transactionItem.findMany({
     where: { transaction: { ownerId, createdAt: { gte: start, lte: end }, status: 'completed' } },
-    orderBy: { quantity: 'desc' },
   })
-
-  const productMap = new Map<string, ProductRank>()
-  items.forEach(item => mergeProductRanks(productMap, item))
-
-  return Array.from(productMap.values())
+  return Array.from(buildProductMap(items).values())
     .sort((a, b) => b.quantity - a.quantity)
+    .slice(0, limit)
+}
+
+async function getBottomProductsForPeriod(ownerId: string, start: Date, end: Date, limit: number): Promise<ProductRank[]> {
+  const [items, allProducts] = await Promise.all([
+    prisma.transactionItem.findMany({
+      where: { transaction: { ownerId, createdAt: { gte: start, lte: end }, status: 'completed' } },
+    }),
+    prisma.product.findMany({ where: { ownerId }, select: { id: true, name: true } }),
+  ])
+
+  const soldMap = buildProductMap(items)
+
+  return allProducts
+    .map(p => soldMap.get(p.id) ?? { productId: p.id, productName: p.name, quantity: 0, revenue: 0 })
+    .sort((a, b) => a.quantity - b.quantity)
     .slice(0, limit)
 }
 
@@ -62,22 +87,45 @@ export async function getDailyReport(ownerId: string, date?: string): Promise<Da
   const start = getStartOfDay(dateStr)
   const end = getEndOfDay(dateStr)
 
-  const transactions = await prisma.transaction.findMany({
-    where: { ownerId, createdAt: { gte: start, lte: end }, status: 'completed' },
-    include: { items: true },
-  })
+  const yesterdayDate = new Date(dateStr)
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+  const yesterdayStr = formatDateStr(yesterdayDate)
+  const yesterdayStart = getStartOfDay(yesterdayStr)
+  const yesterdayEnd = getEndOfDay(yesterdayStr)
+
+  const [transactions, yesterdayTransactions] = await Promise.all([
+    prisma.transaction.findMany({
+      where: { ownerId, createdAt: { gte: start, lte: end }, status: 'completed' },
+      include: { items: true },
+    }),
+    prisma.transaction.findMany({
+      where: { ownerId, createdAt: { gte: yesterdayStart, lte: yesterdayEnd }, status: 'completed' },
+    }),
+  ])
 
   const agg = aggregateTransactions(transactions)
+  const yesterdayAgg = aggregateTransactions(yesterdayTransactions)
   const topProducts = await getTopProductsForPeriod(ownerId, start, end, 5)
 
-  return { date: dateStr, ...agg, topProducts }
+  return {
+    date: dateStr,
+    ...agg,
+    topProducts,
+    comparison: {
+      sales: calcComparison(agg.totalSales, yesterdayAgg.totalSales),
+      profit: calcComparison(agg.profit, yesterdayAgg.profit),
+      transactions: calcComparison(agg.transactionsCount, yesterdayAgg.transactionsCount),
+    },
+  }
 }
 
-function formatDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+// Accept any YYYY-MM-DD date string, finds the Monday-start ISO week containing that date
+export async function getWeeklyReport(ownerId: string, date?: string): Promise<WeeklyReport> {
+  const d = date ? new Date(`${date}T00:00:00.000Z`) : new Date()
+  const startOfWeek = new Date(d)
+  const dow = d.getUTCDay() // 0=Sun, 1=Mon...6=Sat
+  startOfWeek.setUTCDate(d.getUTCDate() - (dow === 0 ? 6 : dow - 1))
 
-async function buildDailyBreakdown(ownerId: string, startOfWeek: Date) {
   const dailyBreakdown = []
   let totalSales = 0
   let totalProfit = 0
@@ -85,59 +133,77 @@ async function buildDailyBreakdown(ownerId: string, startOfWeek: Date) {
 
   for (let i = 0; i < 7; i++) {
     const day = new Date(startOfWeek)
-    day.setDate(startOfWeek.getDate() + i)
-    const dayReport = await getDailyReport(ownerId, formatDateStr(day))
-    dailyBreakdown.push({ date: formatDateStr(day), totalSales: dayReport.totalSales, profit: dayReport.profit, transactionsCount: dayReport.transactionsCount })
-    totalSales += dayReport.totalSales
-    totalProfit += dayReport.profit
-    totalTransactions += dayReport.transactionsCount
+    day.setUTCDate(startOfWeek.getUTCDate() + i)
+    const dayStr = formatDateStr(day)
+    const dayStart = getStartOfDay(dayStr)
+    const dayEnd = getEndOfDay(dayStr)
+
+    const txns = await prisma.transaction.findMany({
+      where: { ownerId, createdAt: { gte: dayStart, lte: dayEnd }, status: 'completed' },
+    })
+    const agg = aggregateTransactions(txns)
+
+    dailyBreakdown.push({
+      date: dayStr,
+      totalSales: agg.totalSales,
+      profit: agg.profit,
+      transactionsCount: agg.transactionsCount,
+    })
+    totalSales += agg.totalSales
+    totalProfit += agg.profit
+    totalTransactions += agg.transactionsCount
   }
 
-  return { dailyBreakdown, totalSales, totalProfit, totalTransactions }
-}
-
-export async function getWeeklyReport(ownerId: string, week?: string): Promise<WeeklyReport> {
-  const d = week ? new Date(week) : new Date()
-  const startOfWeek = new Date(d)
-  startOfWeek.setDate(d.getDate() - d.getDay())
-
-  const { dailyBreakdown, totalSales, totalProfit, totalTransactions } = await buildDailyBreakdown(ownerId, startOfWeek)
-  const weekStr = `${startOfWeek.getFullYear()}-W${String(Math.ceil((startOfWeek.getDate() + 1) / 7)).padStart(2, '0')}`
-
+  const weekStr = `${startOfWeek.getUTCFullYear()}-W${String(getISOWeek(startOfWeek)).padStart(2, '0')}`
   return { week: weekStr, dailyBreakdown, totalSales, totalProfit, totalTransactions }
 }
 
-async function buildWeeklyBreakdown(ownerId: string, year: number, month: number) {
-  const weeklyBreakdown = []
-  let totalSales = 0
-  let totalProfit = 0
-  let totalTransactions = 0
-
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
-  let currentWeekStart = new Date(firstDay)
-
-  while (currentWeekStart <= lastDay) {
-    const weekReport = await getWeeklyReport(ownerId, currentWeekStart.toISOString())
-    weeklyBreakdown.push(weekReport)
-    totalSales += weekReport.totalSales
-    totalProfit += weekReport.totalProfit
-    totalTransactions += weekReport.totalTransactions
-    currentWeekStart.setDate(currentWeekStart.getDate() + 7)
-  }
-
-  return { weeklyBreakdown, totalSales, totalProfit, totalTransactions }
+// ISO week number helper
+function getISOWeek(date: Date): number {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7))
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
 }
 
 export async function getMonthlyReport(ownerId: string, month?: string): Promise<MonthlyReport> {
-  const d = month ? new Date(`${month}-01`) : new Date()
-  const year = d.getFullYear()
-  const m = d.getMonth()
+  const d = month ? new Date(`${month}-01T00:00:00.000Z`) : new Date()
+  const year = d.getUTCFullYear()
+  const m = d.getUTCMonth()
   const monthStr = `${year}-${String(m + 1).padStart(2, '0')}`
 
-  const { weeklyBreakdown, totalSales, totalProfit, totalTransactions } = await buildWeeklyBreakdown(ownerId, year, m)
+  const start = new Date(Date.UTC(year, m, 1))
+  const end = new Date(Date.UTC(year, m + 1, 0, 23, 59, 59, 999))
 
-  return { month: monthStr, weeklyBreakdown, totalSales, totalProfit, totalTransactions }
+  // Direct query for accurate totals (avoids double-counting at month boundaries)
+  const transactions = await prisma.transaction.findMany({
+    where: { ownerId, createdAt: { gte: start, lte: end }, status: 'completed' },
+  })
+  const agg = aggregateTransactions(transactions)
+
+  // Weekly breakdown for chart display
+  const weeklyBreakdown: WeeklyReport[] = []
+  let currentWeekStart = new Date(start)
+  const seen = new Set<string>()
+
+  while (currentWeekStart <= end) {
+    const dateStr = formatDateStr(currentWeekStart)
+    if (!seen.has(dateStr)) {
+      seen.add(dateStr)
+      const weekReport = await getWeeklyReport(ownerId, dateStr)
+      weeklyBreakdown.push(weekReport)
+    }
+    currentWeekStart = new Date(currentWeekStart)
+    currentWeekStart.setUTCDate(currentWeekStart.getUTCDate() + 7)
+  }
+
+  return {
+    month: monthStr,
+    weeklyBreakdown,
+    totalSales: agg.totalSales,
+    totalProfit: agg.profit,
+    totalTransactions: agg.transactionsCount,
+  }
 }
 
 export async function getTopProducts(ownerId: string, period?: string): Promise<TopProductsReport> {
@@ -146,8 +212,10 @@ export async function getTopProducts(ownerId: string, period?: string): Promise<
   const start = new Date()
   start.setDate(end.getDate() - days)
 
-  const topProducts = await getTopProductsForPeriod(ownerId, start, end, 10)
-  const bottomProducts = [...topProducts].reverse()
+  const [top, bottom] = await Promise.all([
+    getTopProductsForPeriod(ownerId, start, end, 5),
+    getBottomProductsForPeriod(ownerId, start, end, 5),
+  ])
 
-  return { period: `${days}d`, top: topProducts, bottom: bottomProducts }
+  return { period: `${days}d`, top, bottom }
 }

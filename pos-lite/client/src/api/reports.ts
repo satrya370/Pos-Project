@@ -7,8 +7,8 @@ export async function getDailyReport(date?: string): Promise<DailyReport> {
   return response.data.data
 }
 
-export async function getWeeklyReport(week?: string): Promise<WeeklyReport> {
-  const params = week ? { week } : {}
+export async function getWeeklyReport(date?: string): Promise<WeeklyReport> {
+  const params = date ? { date } : {}
   const response = await api.get('/reports/weekly', { params })
   return response.data.data
 }

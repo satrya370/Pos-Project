@@ -14,8 +14,9 @@ export async function getDailyReport(req: AuthRequest, res: Response, next: Next
 
 export async function getWeeklyReport(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const { week } = req.query
-    const report = await reportsService.getWeeklyReport(req.ownerId!, week as string | undefined)
+    // Accept 'date' param (YYYY-MM-DD) — any date within the target week
+    const { date } = req.query
+    const report = await reportsService.getWeeklyReport(req.ownerId!, date as string | undefined)
     res.json({ success: true, data: report })
   } catch (err) {
     next(err)

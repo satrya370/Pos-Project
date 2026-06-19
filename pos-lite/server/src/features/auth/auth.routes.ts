@@ -9,5 +9,7 @@ const router = Router()
 router.post('/login', validate(loginSchema), authController.login)
 router.get('/me', authMiddleware, authController.getMe)
 router.post('/logout', authMiddleware, authController.logout)
+router.get('/target', authMiddleware, authController.getDailyTarget)
+router.put('/target', authMiddleware, authController.updateDailyTarget)
 
 export default router

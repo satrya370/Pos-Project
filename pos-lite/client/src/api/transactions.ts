@@ -1,10 +1,11 @@
 import api from './client'
 import { Transaction, CreateTransactionInput } from '@/types'
 
-export async function getTransactions(startDate?: string, endDate?: string): Promise<Transaction[]> {
+export async function getTransactions(startDate?: string, endDate?: string, limit?: number): Promise<Transaction[]> {
   const params = new URLSearchParams()
   if (startDate) params.append('startDate', startDate)
   if (endDate) params.append('endDate', endDate)
+  if (limit) params.append('limit', String(limit))
   const response = await api.get('/transactions', { params })
   return response.data.data
 }

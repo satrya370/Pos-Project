@@ -44,6 +44,10 @@ router.put('/:id/sizes/:sizeId', validate(updateSizeSchema), productsController.
 router.delete('/:id/sizes/:sizeId', productsController.deleteSize)
 router.post('/:id/sizes/:sizeId/restock', validate(restockSizeSchema), productsController.restockSize)
 
+// Static routes — must be BEFORE /:id to avoid conflict
+router.get('/low-stock', productsController.getLowStockProducts)
+router.get('/stock-summary', productsController.getStockSummary)
+
 // Product routes
 router.get('/', productsController.getProducts)
 router.get('/:id', productsController.getProductById)

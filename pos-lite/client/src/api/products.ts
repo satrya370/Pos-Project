@@ -44,6 +44,11 @@ export async function getLowStockProducts(): Promise<Product[]> {
   return response.data.data
 }
 
+export async function getStockSummary() {
+  const response = await api.get('/products/stock-summary')
+  return response.data.data
+}
+
 // Size API
 export async function getSizes(productId: string): Promise<ProductSize[]> {
   const response = await api.get(`/products/${productId}/sizes`)

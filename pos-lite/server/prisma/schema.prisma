@@ -18,6 +18,7 @@ model Owner {
   phone          String?
   waNumber       String?
   telegramChatId String?
+  dailyTarget    Int?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

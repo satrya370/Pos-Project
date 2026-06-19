@@ -39,7 +39,9 @@ function ProductList({ title, icon, products, variant, isLoading }: ProductListP
                 <span className="text-sm font-medium text-gray-700">{product.productName}</span>
               </div>
               <div className="text-right">
-                <p className="text-sm font-medium">{formatPrice(product.revenue)}</p>
+                <p className="text-sm font-medium">
+                  {product.quantity > 0 ? formatPrice(product.revenue) : <span className="text-gray-400">-</span>}
+                </p>
                 <p className="text-xs text-gray-500">{product.quantity} unit</p>
               </div>
             </li>
@@ -51,19 +53,19 @@ function ProductList({ title, icon, products, variant, isLoading }: ProductListP
 }
 
 export function TopProducts() {
-  const { data: topProductsData, isLoading } = useTopProducts('monthly')
+  const { data: topProductsData, isLoading } = useTopProducts('30d')
 
   return (
     <div className="grid md:grid-cols-2 gap-6">
       <ProductList
-        title="Top Produk"
+        title="Top Produk (30 hari)"
         icon={<Trophy className="h-5 w-5 text-warning" />}
         products={topProductsData?.top ?? []}
         variant="top"
         isLoading={isLoading}
       />
       <ProductList
-        title="Bottom Produk"
+        title="Perlu Perhatian (30 hari)"
         icon={<AlertTriangle className="h-5 w-5 text-danger" />}
         products={topProductsData?.bottom ?? []}
         variant="bottom"

@@ -224,16 +224,54 @@ export async function getLowStockProducts(ownerId: string) {
   const products = await prisma.product.findMany({
     where: { ownerId },
     include: {
-      sizes: {
-        select: { id: true, name: true, stock: true },
-      },
+      sizes: { select: { id: true, name: true, stock: true } },
     },
   })
 
   return products.filter(p => {
-    if (p.sizes.length === 0) {
-      return false
-    }
-    return p.sizes.some(s => s.stock < 5)
+    if (p.sizes.length === 0) return false
+    return p.sizes.some(s => s.stock < p.minStockThreshold)
   })
+}
+
+export async function getStockSummary(ownerId: string) {
+  const products = await prisma.product.findMany({
+    where: { ownerId },
+    include: { sizes: { select: { id: true, name: true, stock: true } } },
+  })
+
+  let totalStockValue = 0
+  let outOfStockCount = 0
+  let lowStockCount = 0
+
+  for (const p of products) {
+    for (const s of p.sizes) {
+      totalStockValue += s.stock * p.purchasePrice
+      if (s.stock === 0) outOfStockCount++
+      else if (s.stock < p.minStockThreshold) lowStockCount++
+    }
+  }
+
+  // Dead stock: products with stock > 0 but no sales in last 30 days
+  const thirtyDaysAgo = new Date(Date.UTC(
+    new Date().getUTCFullYear(),
+    new Date().getUTCMonth(),
+    new Date().getUTCDate() - 30
+  ))
+
+  const soldProductIds = await prisma.transactionItem.findMany({
+    where: {
+      transaction: { ownerId, createdAt: { gte: thirtyDaysAgo }, status: 'completed' },
+      productId: { not: null },
+    },
+    select: { productId: true },
+    distinct: ['productId'],
+  })
+  const soldIds = new Set(soldProductIds.map(i => i.productId!))
+
+  const deadStockProducts = products
+    .filter(p => p.sizes.some(s => s.stock > 0) && !soldIds.has(p.id))
+    .map(p => ({ id: p.id, name: p.name, sizes: p.sizes }))
+
+  return { totalStockValue, outOfStockCount, lowStockCount, deadStockProducts }
 }
