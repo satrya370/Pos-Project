@@ -2,7 +2,7 @@ import { Router } from 'express'
 import multer from 'multer'
 import { validate } from '../../middlewares/validate.js'
 import { authMiddleware } from '../../middlewares/auth.js'
-import { createProductSchema, updateProductSchema, createSizeSchema, updateSizeSchema, restockSizeSchema } from './products.types.js'
+import { createProductSchema, updateProductSchema, createSizeSchema, updateSizeSchema, restockSizeSchema, addVariantSchema, addSizeNameSchema } from './products.types.js'
 import { uploadConfig } from '../../config/upload.js'
 import * as productsController from './products.controller.js'
 
@@ -47,7 +47,12 @@ router.post('/:id/sizes/:sizeId/restock', validate(restockSizeSchema), productsC
 // Static routes — must be BEFORE /:id to avoid conflict
 router.get('/low-stock', productsController.getLowStockProducts)
 router.get('/stock-summary', productsController.getStockSummary)
+router.get('/expiring', productsController.getExpiring)
 router.get('/:id/restock-history', productsController.getRestockHistory)
+router.post('/:id/variants', validate(addVariantSchema), productsController.addVariant)
+router.delete('/:id/variants/:variantName', productsController.deleteVariant)
+router.post('/:id/size-names', validate(addSizeNameSchema), productsController.addSizeName)
+router.delete('/:id/size-names/:sizeName', productsController.deleteSizeName)
 
 // Product routes
 router.get('/', productsController.getProducts)

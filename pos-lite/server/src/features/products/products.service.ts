@@ -1,5 +1,5 @@
 import { prisma } from '../../lib/prisma.js'
-import { NotFoundError, BadRequestError } from '../../lib/errors.js'
+import { NotFoundError, BadRequestError, ConflictError } from '../../lib/errors.js'
 import { CreateProductInput, UpdateProductInput, CreateSizeInput, UpdateSizeInput, RestockSizeInput } from './products.types.js'
 import fs from 'fs/promises'
 import path from 'path'
@@ -46,11 +46,13 @@ export async function createProduct(ownerId: string, input: CreateProductInput) 
     data: {
       ...productData,
       ownerId,
+      expiryDate: input.expiryDate ? new Date(input.expiryDate) : null,
       sizes: {
         create: sizes.map(size => ({
-          name: size.name,
-          stock: size.stock,
-          sku: size.sku,
+          name:        size.name,
+          variantName: size.variantName ?? '',
+          stock:       size.stock,
+          sku:         size.sku,
         })),
       },
     },
@@ -71,7 +73,12 @@ export async function updateProduct(ownerId: string, productId: string, input: U
 
   return prisma.product.update({
     where: { id: productId },
-    data: input,
+    data: {
+      ...input,
+      expiryDate: input.expiryDate !== undefined
+        ? (input.expiryDate ? new Date(input.expiryDate) : null)
+        : undefined,
+    },
     include: { sizes: true },
   })
 }
@@ -243,6 +250,97 @@ export async function getLowStockProducts(ownerId: string) {
   return products.filter(p => {
     if (p.sizes.length === 0) return false
     return p.sizes.some(s => s.stock < p.minStockThreshold)
+  })
+}
+
+export async function addVariant(ownerId: string, productId: string, variantName: string) {
+  const product = await prisma.product.findFirst({ where: { id: productId, ownerId } })
+  if (!product) throw new NotFoundError('Produk tidak ditemukan')
+
+  const existingSizes = await prisma.productSize.findMany({ where: { productId } })
+
+  const uniqueSizeNames = [...new Set(existingSizes.map(s => s.name))]
+
+  if (uniqueSizeNames.length === 0) {
+    return prisma.productSize.createMany({
+      data: [{ productId, name: 'Default', variantName, stock: 0 }],
+    })
+  }
+
+  const alreadyExists = existingSizes.some(s => s.variantName === variantName)
+  if (alreadyExists) throw new BadRequestError(`Varian "${variantName}" sudah ada`)
+
+  return prisma.productSize.createMany({
+    data: uniqueSizeNames.map(sizeName => ({ productId, name: sizeName, variantName, stock: 0 })),
+  })
+}
+
+export async function addSizeName(ownerId: string, productId: string, sizeName: string) {
+  const product = await prisma.product.findFirst({ where: { id: productId, ownerId } })
+  if (!product) throw new NotFoundError('Produk tidak ditemukan')
+
+  const existingSizes = await prisma.productSize.findMany({ where: { productId } })
+
+  const uniqueVariantNames = [...new Set(existingSizes.map(s => s.variantName))]
+
+  if (uniqueVariantNames.length === 0) {
+    return prisma.productSize.createMany({
+      data: [{ productId, name: sizeName, variantName: '', stock: 0 }],
+    })
+  }
+
+  const alreadyExists = existingSizes.some(s => s.name === sizeName)
+  if (alreadyExists) throw new BadRequestError(`Ukuran "${sizeName}" sudah ada`)
+
+  return prisma.productSize.createMany({
+    data: uniqueVariantNames.map(vn => ({ productId, name: sizeName, variantName: vn, stock: 0 })),
+  })
+}
+
+export async function deleteVariant(ownerId: string, productId: string, variantName: string) {
+  const product = await prisma.product.findFirst({ where: { id: productId, ownerId } })
+  if (!product) throw new NotFoundError('Produk tidak ditemukan')
+
+  const sizesToDelete = await prisma.productSize.findMany({ where: { productId, variantName } })
+  if (sizesToDelete.length === 0) throw new NotFoundError(`Varian "${variantName}" tidak ditemukan`)
+
+  const sizeIds = sizesToDelete.map(s => s.id)
+  const txCount = await prisma.transactionItem.count({ where: { productSizeId: { in: sizeIds } } })
+  if (txCount > 0) throw new ConflictError(`Tidak bisa hapus — ada ${txCount} transaksi terkait varian ini`)
+
+  const result = await prisma.productSize.deleteMany({ where: { productId, variantName } })
+  return result
+}
+
+export async function deleteSizeName(ownerId: string, productId: string, sizeName: string) {
+  const product = await prisma.product.findFirst({ where: { id: productId, ownerId } })
+  if (!product) throw new NotFoundError('Produk tidak ditemukan')
+
+  const sizesToDelete = await prisma.productSize.findMany({ where: { productId, name: sizeName } })
+  if (sizesToDelete.length === 0) throw new NotFoundError(`Ukuran "${sizeName}" tidak ditemukan`)
+
+  const sizeIds = sizesToDelete.map(s => s.id)
+  const txCount = await prisma.transactionItem.count({ where: { productSizeId: { in: sizeIds } } })
+  if (txCount > 0) throw new ConflictError(`Tidak bisa hapus — ada ${txCount} transaksi terkait ukuran ini`)
+
+  const result = await prisma.productSize.deleteMany({ where: { productId, name: sizeName } })
+  return result
+}
+
+export async function getExpiringProducts(ownerId: string, withinDays = 30) {
+  const now = new Date()
+  const threshold = new Date(now.getTime() + withinDays * 24 * 60 * 60 * 1000)
+
+  return prisma.product.findMany({
+    where: {
+      ownerId,
+      expiryDate: { not: null, lte: threshold },
+    },
+    include: {
+      category: { select: { id: true, name: true, icon: true } },
+      sizes: { orderBy: { name: 'asc' } },
+    },
+    orderBy: { expiryDate: 'asc' },
   })
 }
 

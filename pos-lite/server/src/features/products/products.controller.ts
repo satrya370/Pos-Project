@@ -140,3 +140,51 @@ export async function getStockSummary(req: AuthRequest, res: Response, next: Nex
     next(err)
   }
 }
+
+export async function getExpiring(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const withinDays = req.query.withinDays ? Number(req.query.withinDays) : 30
+    const products = await productsService.getExpiringProducts(req.ownerId!, withinDays)
+    res.json({ success: true, data: products })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function addVariant(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const result = await productsService.addVariant(req.ownerId!, req.params.id, req.body.variantName)
+    res.status(201).json({ success: true, data: result })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function deleteVariant(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const variantName = decodeURIComponent(req.params.variantName)
+    const result = await productsService.deleteVariant(req.ownerId!, req.params.id, variantName)
+    res.json({ success: true, data: result })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function addSizeName(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const result = await productsService.addSizeName(req.ownerId!, req.params.id, req.body.sizeName)
+    res.status(201).json({ success: true, data: result })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function deleteSizeName(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const sizeName = decodeURIComponent(req.params.sizeName)
+    const result = await productsService.deleteSizeName(req.ownerId!, req.params.id, sizeName)
+    res.json({ success: true, data: result })
+  } catch (err) {
+    next(err)
+  }
+}
