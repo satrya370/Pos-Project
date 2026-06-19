@@ -11,6 +11,10 @@ import {
   ChevronRight,
   Menu,
   X,
+  Truck,
+  Tag,
+  Users,
+  CreditCard,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/useAuth'
 
@@ -30,7 +34,11 @@ const navItems: NavItem[] = [
   { to: '/products', icon: Package, label: 'Produk' },
   { to: '/transactions', icon: ShoppingCart, label: 'Catat Penjualan' },
   { to: '/transactions/history', icon: Clock, label: 'Riwayat' },
+  { to: '/debts', icon: CreditCard, label: 'Hutang/Kasbon' },
   { to: '/reports', icon: BarChart3, label: 'Laporan' },
+  { to: '/customers', icon: Users, label: 'Customer' },
+  { to: '/suppliers', icon: Truck, label: 'Supplier' },
+  { to: '/categories', icon: Tag, label: 'Kategori' },
 ]
 
 export function Sidebar({ isExpanded, onToggle }: SidebarProps) {

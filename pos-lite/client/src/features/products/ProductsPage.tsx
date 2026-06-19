@@ -7,7 +7,9 @@ import { Badge } from '@/components/ui/Badge'
 import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
 import { ProductForm } from './ProductForm'
-import { Plus, Edit, Trash2, Search, ShoppingBag } from 'lucide-react'
+import { RestockModal } from './RestockModal'
+import { RestockHistoryModal } from './RestockHistoryModal'
+import { Plus, Edit, Trash2, Search, ShoppingBag, RefreshCw, History } from 'lucide-react'
 import { Product } from '@/types'
 
 export function ProductsPage() {
@@ -16,6 +18,8 @@ export function ProductsPage() {
   const [showForm, setShowForm] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [restockProduct, setRestockProduct] = useState<Product | null>(null)
+  const [historyProduct, setHistoryProduct] = useState<Product | null>(null)
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['products'],
@@ -133,6 +137,20 @@ export function ProductsPage() {
                     <td className="px-4 py-3 text-sm text-gray-500">{product.category?.name || '-'}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setRestockProduct(product)}
+                          className="p-1.5 text-green-600 hover:bg-green-50 rounded"
+                          title="Restock"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setHistoryProduct(product)}
+                          className="p-1.5 text-blue-500 hover:bg-blue-50 rounded"
+                          title="Riwayat Restock"
+                        >
+                          <History className="h-4 w-4" />
+                        </button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -179,6 +197,9 @@ export function ProductsPage() {
           </div>
         </div>
       </Modal>
+
+      <RestockModal product={restockProduct} onClose={() => setRestockProduct(null)} />
+      <RestockHistoryModal product={historyProduct} onClose={() => setHistoryProduct(null)} />
     </div>
   )
 }

@@ -97,6 +97,7 @@ export function TransactionHistory() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pelanggan</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Items</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
@@ -109,6 +110,7 @@ export function TransactionHistory() {
                 {filteredTransactions.map((tx) => (
                   <tr key={tx.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm font-mono">{tx.invoiceNumber}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{tx.customerName || '-'}</td>
                     <td className="px-4 py-3 text-sm text-gray-500">
                       {format(new Date(tx.createdAt), 'dd MMM yyyy, HH:mm', { locale: id })}
                     </td>
@@ -116,9 +118,12 @@ export function TransactionHistory() {
                     <td className="px-4 py-3 text-sm text-right font-medium">{formatPrice(tx.totalAmount)}</td>
                     <td className="px-4 py-3 text-sm text-right text-success">{formatPrice(tx.profit)}</td>
                     <td className="px-4 py-3 text-center">
-                      <Badge variant={tx.status === 'completed' ? 'success' : 'danger'}>
-                        {tx.status === 'completed' ? 'Selesai' : 'Dibatalkan'}
-                      </Badge>
+                      <div className="flex items-center justify-center gap-1 flex-wrap">
+                        <Badge variant={tx.status === 'completed' ? 'success' : 'danger'}>
+                          {tx.status === 'completed' ? 'Selesai' : 'Dibatalkan'}
+                        </Badge>
+                        {tx.paymentStatus === 'credit' && <Badge variant="warning">Kredit</Badge>}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">

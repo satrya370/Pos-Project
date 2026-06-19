@@ -1,5 +1,5 @@
 import api from './client'
-import { Transaction, CreateTransactionInput } from '@/types'
+import { Transaction, CreateTransactionInput, DebtPayment } from '@/types'
 
 export async function getTransactions(startDate?: string, endDate?: string, limit?: number): Promise<Transaction[]> {
   const params = new URLSearchParams()
@@ -22,5 +22,15 @@ export async function createTransaction(data: CreateTransactionInput): Promise<T
 
 export async function voidTransaction(id: string): Promise<Transaction> {
   const response = await api.put(`/transactions/${id}/void`)
+  return response.data.data
+}
+
+export async function getDebts(): Promise<Transaction[]> {
+  const response = await api.get('/transactions/debts')
+  return response.data.data
+}
+
+export async function recordDebtPayment(id: string, data: { amount: number; notes?: string | null }): Promise<DebtPayment> {
+  const response = await api.post(`/transactions/${id}/pay`, data)
   return response.data.data
 }

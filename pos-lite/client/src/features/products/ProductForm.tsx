@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useForm, useFieldArray } from 'react-hook-form'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { createProduct, updateProduct, uploadProductImage, deleteProductImage } from '@/api/products'
+import { getSuppliers } from '@/api/suppliers'
+import { getCategories } from '@/api/categories'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Product, CreateProductInput } from '@/types'
@@ -17,6 +19,9 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
 
+  const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: getSuppliers })
+  const { data: categories = [] } = useQuery({ queryKey: ['categories'], queryFn: getCategories })
+
   const { register, handleSubmit, formState: { errors }, reset, control } = useForm<CreateProductInput>({
     defaultValues: {
       name: '',
@@ -25,6 +30,8 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
       purchasePrice: 0,
       sellingPrice: 0,
       minStockThreshold: 5,
+      categoryId: null,
+      supplierId: null,
       sizes: [{ name: '', stock: 0, sku: null }],
     },
   })
@@ -43,6 +50,8 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
         purchasePrice: product.purchasePrice,
         sellingPrice: product.sellingPrice,
         minStockThreshold: product.minStockThreshold,
+        categoryId: product.categoryId || null,
+        supplierId: product.supplierId || null,
         sizes: product.sizes.length > 0
           ? product.sizes.map(s => ({ name: s.name, stock: s.stock, sku: s.sku }))
           : [{ name: '', stock: 0, sku: null }],
@@ -56,6 +65,8 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
         purchasePrice: 0,
         sellingPrice: 0,
         minStockThreshold: 5,
+        categoryId: null,
+        supplierId: null,
         sizes: [{ name: '', stock: 0, sku: null }],
       })
       setImagePreview(null)
@@ -184,6 +195,32 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
         min={0}
         {...register('minStockThreshold', { valueAsNumber: true, min: { value: 0, message: 'Minimal 0' } })}
       />
+
+      <div>
+        <label className="block text-xs font-medium text-gray-500 mb-1">Kategori</label>
+        <select
+          {...register('categoryId')}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+        >
+          <option value="">-- Tidak ada --</option>
+          {categories.map(c => (
+            <option key={c.id} value={c.id}>{c.icon ? `${c.icon} ` : ''}{c.name}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-gray-500 mb-1">Supplier</label>
+        <select
+          {...register('supplierId')}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+        >
+          <option value="">-- Tidak ada --</option>
+          {suppliers.map(s => (
+            <option key={s.id} value={s.id}>{s.name}{s.phone ? ` (${s.phone})` : ''}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Sizes */}
       <div>

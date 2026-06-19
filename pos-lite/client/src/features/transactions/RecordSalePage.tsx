@@ -16,6 +16,8 @@ export function RecordSalePage() {
   const [search, setSearch] = useState('')
   const [notes, setNotes] = useState('')
   const [isCartOpen, setIsCartOpen] = useState(false)
+  const [paymentStatus, setPaymentStatus] = useState<'paid' | 'credit'>('paid')
+  const [customerName, setCustomerName] = useState('')
 
   const {
     items,
@@ -23,6 +25,7 @@ export function RecordSalePage() {
     totalPrice,
     addItem,
     updateQuantity,
+    setDiscount,
     removeItem,
     clearCart,
   } = useCart()
@@ -39,8 +42,10 @@ export function RecordSalePage() {
       queryClient.invalidateQueries({ queryKey: ['products'] })
       clearCart()
       setNotes('')
+      setPaymentStatus('paid')
+      setCustomerName('')
       setIsCartOpen(false)
-      alert('Penjualan berhasil dicatat!')
+      alert(paymentStatus === 'credit' ? 'Kasbon berhasil dicatat!' : 'Penjualan berhasil dicatat!')
     },
     onError: (error: Error) => {
       alert(`Gagal mencatat penjualan: ${error.message}`)
@@ -60,8 +65,11 @@ export function RecordSalePage() {
         productId: item.productId,
         productSizeId: item.productSizeId,
         quantity: item.quantity,
+        discountPercent: item.discountPercent,
       })),
       notes: notes || null,
+      paymentStatus,
+      customerName: customerName || null,
     })
   }
 
@@ -124,6 +132,11 @@ export function RecordSalePage() {
           onNotesChange={setNotes}
           onUpdateQuantity={updateQuantity}
           onRemoveItem={removeItem}
+          onSetDiscount={setDiscount}
+          paymentStatus={paymentStatus}
+          customerName={customerName}
+          onPaymentStatusChange={setPaymentStatus}
+          onCustomerNameChange={setCustomerName}
           onCheckout={handleCheckout}
           isSubmitting={createMutation.isPending}
         />
@@ -148,6 +161,11 @@ export function RecordSalePage() {
         onNotesChange={setNotes}
         onUpdateQuantity={updateQuantity}
         onRemoveItem={removeItem}
+        onSetDiscount={setDiscount}
+        paymentStatus={paymentStatus}
+        customerName={customerName}
+        onPaymentStatusChange={setPaymentStatus}
+        onCustomerNameChange={setCustomerName}
         onCheckout={handleCheckout}
         isSubmitting={createMutation.isPending}
       />

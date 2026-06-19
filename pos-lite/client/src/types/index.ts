@@ -32,8 +32,53 @@ export interface ApiError {
 
 export interface Category {
   id: string
+  ownerId?: string
   name: string
   icon?: string | null
+  createdAt?: string
+}
+
+export interface Supplier {
+  id: string
+  ownerId: string
+  name: string
+  contact?: string | null
+  phone?: string | null
+  address?: string | null
+  createdAt: string
+}
+
+export interface Customer {
+  id: string
+  ownerId: string
+  name: string
+  phone?: string | null
+  email?: string | null
+  notes?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface StockMovement {
+  id: string
+  productId: string
+  type: string
+  quantity: number
+  referenceId?: string | null
+  notes?: string | null
+  purchasePrice?: number | null
+  invoiceNumber?: string | null
+  supplierId?: string | null
+  createdAt: string
+}
+
+export interface DebtPayment {
+  id: string
+  transactionId: string
+  amount: number
+  notes?: string | null
+  paidAt: string
+  createdAt: string
 }
 
 export interface ProductSize {
@@ -96,6 +141,8 @@ export interface TransactionItem {
   quantity: number
   unitPrice: number
   costAtPurchase: number
+  discountPercent: number
+  discountAmount: number
   subtotal: number
 }
 
@@ -109,13 +156,20 @@ export interface Transaction {
   itemsCount: number
   notes?: string | null
   status: string
+  paymentStatus: string
+  customerId?: string | null
+  customerName?: string | null
   createdAt: string
   items: TransactionItem[]
+  debtPayments?: DebtPayment[]
 }
 
 export interface CreateTransactionInput {
-  items: { productId: string; productSizeId: string; quantity: number }[]
+  items: { productId: string; productSizeId: string; quantity: number; discountPercent?: number }[]
   notes?: string | null
+  customerId?: string | null
+  customerName?: string | null
+  paymentStatus?: 'paid' | 'credit'
 }
 
 export interface CartItem {
@@ -126,6 +180,7 @@ export interface CartItem {
   size: string
   price: number
   quantity: number
+  discountPercent: number
   imageUrl?: string | null
 }
 

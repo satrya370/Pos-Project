@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getDailyReport, getWeeklyReport, getMonthlyReport, getTopProducts } from '@/api/reports'
+import { getDailyReport, getWeeklyReport, getMonthlyReport, getTopProducts, exportReport } from '@/api/reports'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Spinner } from '@/components/ui/Spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
-import { TrendingUp, TrendingDown, BarChart3, Calendar, Trophy, AlertTriangle } from 'lucide-react'
+import { TrendingUp, TrendingDown, BarChart3, Calendar, Trophy, AlertTriangle, FileDown, FileSpreadsheet } from 'lucide-react'
 
 export function ReportsPage() {
   const [activeTab, setActiveTab] = useState('daily')
@@ -15,6 +15,22 @@ export function ReportsPage() {
   const [selectedWeek, setSelectedWeek] = useState(format(new Date(), "yyyy-'W'II"))
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'))
   const [period, setPeriod] = useState('monthly')
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleExport = async (type: 'daily' | 'monthly', fmt: 'pdf' | 'excel') => {
+    setIsExporting(true)
+    try {
+      if (type === 'daily') {
+        await exportReport(type, fmt, { date: selectedDate })
+      } else {
+        await exportReport(type, fmt, { month: selectedMonth })
+      }
+    } catch (err) {
+      alert('Gagal mengexport laporan')
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const { data: dailyReport, isLoading: isLoadingDaily } = useQuery({
     queryKey: ['reports', 'daily', selectedDate],
@@ -56,7 +72,7 @@ export function ReportsPage() {
         </TabsList>
 
         <TabsContent value="daily" className="space-y-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 flex-wrap">
             <label className="text-sm font-medium text-gray-700">Tanggal:</label>
             <input
               type="date"
@@ -64,6 +80,20 @@ export function ReportsPage() {
               onChange={(e) => setSelectedDate(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
+            <button
+              onClick={() => handleExport('daily', 'pdf')}
+              disabled={isExporting}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              <FileDown className="h-4 w-4" /> PDF
+            </button>
+            <button
+              onClick={() => handleExport('daily', 'excel')}
+              disabled={isExporting}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              <FileSpreadsheet className="h-4 w-4" /> Excel
+            </button>
           </div>
 
           {isLoadingDaily ? (
@@ -183,7 +213,7 @@ export function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="monthly" className="space-y-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 flex-wrap">
             <label className="text-sm font-medium text-gray-700">Bulan:</label>
             <input
               type="month"
@@ -191,6 +221,20 @@ export function ReportsPage() {
               onChange={(e) => setSelectedMonth(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
+            <button
+              onClick={() => handleExport('monthly', 'pdf')}
+              disabled={isExporting}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              <FileDown className="h-4 w-4" /> PDF
+            </button>
+            <button
+              onClick={() => handleExport('monthly', 'excel')}
+              disabled={isExporting}
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            >
+              <FileSpreadsheet className="h-4 w-4" /> Excel
+            </button>
           </div>
 
           {isLoadingMonthly ? (

@@ -69,7 +69,20 @@ export async function deleteSize(productId: string, sizeId: string): Promise<voi
   await api.delete(`/products/${productId}/sizes/${sizeId}`)
 }
 
-export async function restockSize(productId: string, sizeId: string, quantity: number, notes?: string): Promise<ProductSize> {
-  const response = await api.post(`/products/${productId}/sizes/${sizeId}/restock`, { quantity, notes })
+export interface RestockInput {
+  quantity: number
+  notes?: string | null
+  purchasePrice?: number | null
+  invoiceNumber?: string | null
+  supplierId?: string | null
+}
+
+export async function restockSize(productId: string, sizeId: string, data: RestockInput): Promise<ProductSize> {
+  const response = await api.post(`/products/${productId}/sizes/${sizeId}/restock`, data)
+  return response.data.data
+}
+
+export async function getRestockHistory(productId: string) {
+  const response = await api.get(`/products/${productId}/restock-history`)
   return response.data.data
 }

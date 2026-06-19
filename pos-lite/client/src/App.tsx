@@ -7,6 +7,10 @@ import { ProductsPage } from '@/features/products/ProductsPage'
 import { RecordSalePage } from '@/features/transactions/RecordSalePage'
 import { TransactionHistory } from '@/features/transactions/TransactionHistory'
 import { ReportsPage } from '@/features/reports/ReportsPage'
+import { SuppliersPage } from '@/features/suppliers/SuppliersPage'
+import { CategoriesPage } from '@/features/categories/CategoriesPage'
+import { CustomersPage } from '@/features/customers/CustomersPage'
+import { DebtsPage } from '@/features/debts/DebtsPage'
 import { ToastProvider } from '@/components/ui/Toast'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 
@@ -50,6 +54,10 @@ export default function App() {
               <Route path="/transactions" element={<RecordSalePage />} />
               <Route path="/transactions/history" element={<TransactionHistory />} />
               <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/suppliers" element={<SuppliersPage />} />
+              <Route path="/categories" element={<CategoriesPage />} />
+              <Route path="/customers" element={<CustomersPage />} />
+              <Route path="/debts" element={<DebtsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

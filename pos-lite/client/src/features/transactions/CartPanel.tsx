@@ -9,6 +9,11 @@ interface CartPanelProps {
   onNotesChange: (notes: string) => void
   onUpdateQuantity: (itemId: string, quantity: number) => void
   onRemoveItem: (itemId: string) => void
+  onSetDiscount: (itemId: string, discountPercent: number) => void
+  paymentStatus: 'paid' | 'credit'
+  customerName: string
+  onPaymentStatusChange: (status: 'paid' | 'credit') => void
+  onCustomerNameChange: (name: string) => void
   onCheckout: () => void
   isSubmitting?: boolean
 }
@@ -23,6 +28,11 @@ export function CartPanel({
   onNotesChange,
   onUpdateQuantity,
   onRemoveItem,
+  onSetDiscount,
+  paymentStatus,
+  customerName,
+  onPaymentStatusChange,
+  onCustomerNameChange,
   onCheckout,
   isSubmitting,
 }: CartPanelProps) {
@@ -56,6 +66,23 @@ export function CartPanel({
                 <p className="font-medium text-sm text-gray-800 truncate">{item.productName}</p>
                 <p className="text-xs text-gray-500">Ukuran: {item.size}</p>
                 <p className="text-sm font-medium text-primary mt-1">{formatPrice(item.price)}</p>
+                <div className="flex items-center gap-1 mt-1.5">
+                  <span className="text-xs text-gray-400">Diskon:</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={item.discountPercent}
+                    onChange={(e) => onSetDiscount(item.id, Number(e.target.value))}
+                    className="w-14 text-xs border border-gray-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                  />
+                  <span className="text-xs text-gray-400">%</span>
+                  {item.discountPercent > 0 && (
+                    <span className="text-xs text-danger ml-1">
+                      -{formatPrice(item.price * item.quantity * item.discountPercent / 100)}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -95,6 +122,34 @@ export function CartPanel({
           />
         </div>
 
+        {/* Kasbon */}
+        <div className="flex items-center justify-between py-2 border-t border-gray-100">
+          <span className="text-sm font-medium text-gray-700">Kasbon (bayar nanti)</span>
+          <button
+            type="button"
+            onClick={() => onPaymentStatusChange(paymentStatus === 'credit' ? 'paid' : 'credit')}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              paymentStatus === 'credit' ? 'bg-warning' : 'bg-gray-300'
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              paymentStatus === 'credit' ? 'translate-x-6' : 'translate-x-1'
+            }`} />
+          </button>
+        </div>
+
+        {paymentStatus === 'credit' && (
+          <div>
+            <input
+              type="text"
+              placeholder="Nama pembeli (opsional)"
+              value={customerName}
+              onChange={(e) => onCustomerNameChange(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+        )}
+
         <div className="flex justify-between text-lg font-bold">
           <span>Total</span>
           <span>{formatPrice(total)}</span>
@@ -107,7 +162,7 @@ export function CartPanel({
           disabled={items.length === 0}
           onClick={onCheckout}
         >
-          💳 Bayar
+          {paymentStatus === 'credit' ? '📋 Kasbon' : '💳 Bayar'}
         </Button>
       </div>
     </div>

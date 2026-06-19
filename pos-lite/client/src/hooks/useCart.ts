@@ -24,6 +24,7 @@ export function useCart() {
         size: size.name,
         price: product.sellingPrice,
         quantity: 1,
+        discountPercent: 0,
         imageUrl: product.imageUrl,
       }]
     })
@@ -35,11 +36,14 @@ export function useCart() {
       return
     }
     setItems(prev =>
-      prev.map(i =>
-        i.id === itemId
-          ? { ...i, quantity }
-          : i
-      )
+      prev.map(i => i.id === itemId ? { ...i, quantity } : i)
+    )
+  }, [])
+
+  const setDiscount = useCallback((itemId: string, discountPercent: number) => {
+    const clamped = Math.min(100, Math.max(0, discountPercent))
+    setItems(prev =>
+      prev.map(i => i.id === itemId ? { ...i, discountPercent: clamped } : i)
     )
   }, [])
 
@@ -57,7 +61,10 @@ export function useCart() {
   )
 
   const totalPrice = useMemo(() =>
-    items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    items.reduce((sum, item) => {
+      const discounted = item.price * item.quantity * (1 - item.discountPercent / 100)
+      return sum + discounted
+    }, 0),
     [items]
   )
 
@@ -67,6 +74,7 @@ export function useCart() {
     totalPrice,
     addItem,
     updateQuantity,
+    setDiscount,
     removeItem,
     clearCart,
   }
