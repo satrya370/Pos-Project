@@ -85,6 +85,7 @@ export interface ProductSize {
   id: string
   productId: string
   name: string
+  variantName: string
   stock: number
   sku?: string | null
 }
@@ -103,6 +104,10 @@ export interface Product {
   minStockThreshold: number
   isBundle: boolean
   bundleProducts?: string | null
+  weight?: number | null
+  weightUnit?: 'g' | 'kg' | 'ml' | 'L' | 'pcs' | null
+  expiryDate?: string | null
+  variantLabel?: string | null
   createdAt: string
   updatedAt: string
   category?: Category | null
@@ -120,7 +125,11 @@ export interface CreateProductInput {
   minStockThreshold?: number
   isBundle?: boolean
   bundleProducts?: string | null
-  sizes?: { name: string; stock: number; sku?: string | null }[]
+  weight?: number | null
+  weightUnit?: 'g' | 'kg' | 'ml' | 'L' | 'pcs' | null
+  expiryDate?: string | null
+  variantLabel?: string | null
+  sizes?: { name: string; variantName?: string; stock: number; sku?: string | null }[]
 }
 
 export type UpdateProductInput = Partial<CreateProductInput>

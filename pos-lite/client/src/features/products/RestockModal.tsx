@@ -68,11 +68,17 @@ export function RestockModal({ product, onClose }: RestockModalProps) {
             onChange={(e) => setSelectedSizeId(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
-            {product.sizes.map((size) => (
-              <option key={size.id} value={size.id}>
-                {size.name} (stok: {size.stock})
-              </option>
-            ))}
+            {product.sizes.map((size) => {
+              const parts = []
+              if (size.variantName) parts.push(size.variantName)
+              if (size.name !== 'Default') parts.push(size.name)
+              const label = parts.join(' / ') || 'Default'
+              return (
+                <option key={size.id} value={size.id}>
+                  {label} (stok: {size.stock})
+                </option>
+              )
+            })}
           </select>
         </div>
 

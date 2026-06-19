@@ -86,3 +86,24 @@ export async function getRestockHistory(productId: string) {
   const response = await api.get(`/products/${productId}/restock-history`)
   return response.data.data
 }
+
+export async function addVariant(productId: string, variantName: string): Promise<void> {
+  await api.post(`/products/${productId}/variants`, { variantName })
+}
+
+export async function deleteVariant(productId: string, variantName: string): Promise<void> {
+  await api.delete(`/products/${productId}/variants/${encodeURIComponent(variantName)}`)
+}
+
+export async function addSizeName(productId: string, sizeName: string): Promise<void> {
+  await api.post(`/products/${productId}/size-names`, { sizeName })
+}
+
+export async function deleteSizeName(productId: string, sizeName: string): Promise<void> {
+  await api.delete(`/products/${productId}/size-names/${encodeURIComponent(sizeName)}`)
+}
+
+export async function getExpiringProducts(withinDays = 30): Promise<Product[]> {
+  const response = await api.get('/products/expiring', { params: { withinDays } })
+  return response.data.data
+}
