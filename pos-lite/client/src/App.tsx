@@ -2,6 +2,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Layout } from '@/components/layout/Layout'
 import { LoginPage } from '@/features/auth/LoginPage'
+import { ProductsPage } from '@/features/products/ProductsPage'
+import { RecordSalePage } from '@/features/transactions/RecordSalePage'
+import { TransactionHistory } from '@/features/transactions/TransactionHistory'
+import { ReportsPage } from '@/features/reports/ReportsPage'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 
 const queryClient = new QueryClient({
@@ -40,42 +44,6 @@ function Dashboard() {
   )
 }
 
-function ProductsPage() {
-  return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-800">Produk</h2>
-      <p className="text-gray-500 mt-2">Manajemen produk</p>
-    </div>
-  )
-}
-
-function TransactionsPage() {
-  return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-800">Catat Penjualan</h2>
-      <p className="text-gray-500 mt-2">Form pencatatan penjualan</p>
-    </div>
-  )
-}
-
-function TransactionHistoryPage() {
-  return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-800">Riwayat Transaksi</h2>
-      <p className="text-gray-500 mt-2">Riwayat transaksi</p>
-    </div>
-  )
-}
-
-function ReportsPage() {
-  return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-800">Laporan</h2>
-      <p className="text-gray-500 mt-2">Laporan penjualan</p>
-    </div>
-  )
-}
-
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -85,8 +53,8 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/products" element={<ProductsPage />} />
-            <Route path="/transactions" element={<TransactionsPage />} />
-            <Route path="/transactions/history" element={<TransactionHistoryPage />} />
+            <Route path="/transactions" element={<RecordSalePage />} />
+            <Route path="/transactions/history" element={<TransactionHistory />} />
             <Route path="/reports" element={<ReportsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -28,3 +28,125 @@ export interface ApiError {
   error: string
   statusCode: number
 }
+
+export interface Category {
+  id: string
+  name: string
+  icon?: string | null
+}
+
+export interface Product {
+  id: string
+  ownerId: string
+  categoryId?: string | null
+  supplierId?: string | null
+  sku?: string | null
+  name: string
+  description?: string | null
+  purchasePrice: number
+  sellingPrice: number
+  stock: number
+  minStockThreshold: number
+  hasVariants: boolean
+  variants?: string | null
+  isBundle: boolean
+  bundleProducts?: string | null
+  createdAt: string
+  updatedAt: string
+  category?: Category | null
+}
+
+export interface CreateProductInput {
+  name: string
+  categoryId?: string | null
+  supplierId?: string | null
+  sku?: string | null
+  description?: string | null
+  purchasePrice?: number
+  sellingPrice: number
+  stock?: number
+  minStockThreshold?: number
+  hasVariants?: boolean
+  variants?: string | null
+  isBundle?: boolean
+  bundleProducts?: string | null
+}
+
+export type UpdateProductInput = Partial<CreateProductInput>
+
+export interface TransactionItem {
+  id: string
+  transactionId: string
+  productId?: string | null
+  productName: string
+  variant?: string | null
+  quantity: number
+  unitPrice: number
+  costAtPurchase: number
+  subtotal: number
+}
+
+export interface Transaction {
+  id: string
+  ownerId: string
+  invoiceNumber: string
+  totalAmount: number
+  totalCost: number
+  profit: number
+  itemsCount: number
+  notes?: string | null
+  status: string
+  createdAt: string
+  items: TransactionItem[]
+}
+
+export interface CreateTransactionInput {
+  items: { productId: string; quantity: number }[]
+  notes?: string | null
+}
+
+export interface ProductRank {
+  productId: string
+  productName: string
+  quantity: number
+  revenue: number
+}
+
+export interface DailyReport {
+  date: string
+  totalSales: number
+  totalCost: number
+  profit: number
+  transactionsCount: number
+  itemsSold: number
+  topProducts: ProductRank[]
+}
+
+export interface DailyBreakdown {
+  date: string
+  totalSales: number
+  profit: number
+  transactionsCount: number
+}
+
+export interface WeeklyReport {
+  week: string
+  dailyBreakdown: DailyBreakdown[]
+  totalSales: number
+  totalProfit: number
+  totalTransactions: number
+}
+
+export interface MonthlyReport {
+  month: string
+  weeklyBreakdown: WeeklyReport[]
+  totalSales: number
+  totalProfit: number
+  totalTransactions: number
+}
+
+export interface TopProductsReport {
+  period: string
+  top: ProductRank[]
+  bottom: ProductRank[]
+}
