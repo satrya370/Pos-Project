@@ -43,3 +43,17 @@ export async function voidTransaction(req: AuthRequest, res: Response, next: Nex
     next(err)
   }
 }
+
+export async function getDebts(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const debts = await transactionsService.getDebts(req.ownerId!)
+    res.json({ success: true, data: debts })
+  } catch (err) { next(err) }
+}
+
+export async function recordDebtPayment(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const payment = await transactionsService.recordDebtPayment(req.ownerId!, req.params.id, req.body)
+    res.status(201).json({ success: true, data: payment })
+  } catch (err) { next(err) }
+}

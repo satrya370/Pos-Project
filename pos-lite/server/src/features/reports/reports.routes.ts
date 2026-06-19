@@ -6,6 +6,7 @@ const router = Router()
 
 router.use(authMiddleware)
 
+router.get('/export', reportsController.exportReport)
 router.get('/daily', reportsController.getDailyReport)
 router.get('/weekly', reportsController.getWeeklyReport)
 router.get('/monthly', reportsController.getMonthlyReport)

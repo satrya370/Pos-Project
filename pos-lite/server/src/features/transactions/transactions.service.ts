@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { NotFoundError, BadRequestError } from '../../lib/errors.js'
 import { generateInvoiceNumber } from '../../utils/invoice.js'
-import { CreateTransactionInput } from './transactions.types.js'
+import { CreateTransactionInput, RecordPaymentInput } from './transactions.types.js'
 
 export async function getTransactions(ownerId: string, startDate?: string, endDate?: string, limit?: number) {
   const where: Record<string, unknown> = { ownerId }
@@ -60,7 +60,8 @@ function buildTransactionItems(productMap: Map<string, { sellingPrice: number; p
   const transactionItems = items.map(item => {
     const product = productMap.get(item.productId)!
     const size = product.sizes.find(s => s.id === item.productSizeId)
-    const subtotal = product.sellingPrice * item.quantity
+    const discountAmount = product.sellingPrice * item.quantity * (item.discountPercent / 100)
+    const subtotal = product.sellingPrice * item.quantity - discountAmount
     totalAmount += subtotal
     totalCost += product.purchasePrice * item.quantity
     return {
@@ -71,6 +72,8 @@ function buildTransactionItems(productMap: Map<string, { sellingPrice: number; p
       quantity: item.quantity,
       unitPrice: product.sellingPrice,
       costAtPurchase: product.purchasePrice,
+      discountPercent: item.discountPercent,
+      discountAmount,
       subtotal,
     }
   })
@@ -112,6 +115,9 @@ export async function createTransaction(ownerId: string, input: CreateTransactio
       profit: totalAmount - totalCost,
       itemsCount,
       notes: input.notes,
+      customerId:    input.customerId ?? null,
+      customerName:  input.customerName ?? null,
+      paymentStatus: input.paymentStatus ?? 'paid',
       items: { create: transactionItems },
     },
     include: { items: true },
@@ -160,4 +166,41 @@ export async function voidTransaction(ownerId: string, transactionId: string) {
     where: { id: transactionId },
     include: { items: true },
   })
+}
+
+export async function getDebts(ownerId: string) {
+  return prisma.transaction.findMany({
+    where: { ownerId, paymentStatus: 'credit', status: 'completed' },
+    include: {
+      items: true,
+      debtPayments: { orderBy: { paidAt: 'asc' } },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+}
+
+export async function recordDebtPayment(ownerId: string, transactionId: string, input: RecordPaymentInput) {
+  const transaction = await prisma.transaction.findFirst({
+    where: { id: transactionId, ownerId, paymentStatus: 'credit' },
+    include: { debtPayments: true },
+  })
+  if (!transaction) throw new NotFoundError('Transaksi kredit tidak ditemukan')
+
+  const alreadyPaid = transaction.debtPayments.reduce((sum, p) => sum + p.amount, 0)
+  const remaining = transaction.totalAmount - alreadyPaid
+  if (input.amount > remaining + 0.001) {
+    throw new BadRequestError(`Jumlah melebihi sisa hutang (Rp ${remaining.toLocaleString('id-ID')})`)
+  }
+
+  const payment = await prisma.debtPayment.create({
+    data: { transactionId, amount: input.amount, notes: input.notes ?? null },
+  })
+
+  if (input.amount >= remaining - 0.001) {
+    await prisma.transaction.update({
+      where: { id: transactionId },
+      data: { paymentStatus: 'paid' },
+    })
+  }
+  return payment
 }
