@@ -40,6 +40,38 @@ export async function getAnalytics(period: number, categoryId?: string): Promise
   return response.data.data
 }
 
+export interface ProfitMarginItem {
+  productId: string
+  productName: string
+  categoryName: string
+  costPrice: number
+  avgSellingPrice: number
+  totalQty: number
+  totalRevenue: number
+  totalProfit: number
+  marginPercent: number | null  // null = no purchase price data
+}
+
+export interface PeriodComparisonData {
+  current:  { revenue: number; txCount: number; avgOrderValue: number }
+  previous: { revenue: number; txCount: number; avgOrderValue: number }
+  delta: {
+    revenuePercent:       number | null
+    txCountPercent:       number | null
+    avgOrderValuePercent: number | null
+  }
+}
+
+export async function getProfitMargin(period: number): Promise<ProfitMarginItem[]> {
+  const response = await api.get('/reports/profit-margin', { params: { period } })
+  return response.data.data
+}
+
+export async function getPeriodComparison(period: number): Promise<PeriodComparisonData> {
+  const response = await api.get('/reports/comparison', { params: { period } })
+  return response.data.data
+}
+
 export async function exportReport(
   type: 'daily' | 'monthly',
   format: 'pdf' | 'excel',
