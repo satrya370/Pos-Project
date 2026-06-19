@@ -2,10 +2,12 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Layout } from '@/components/layout/Layout'
 import { LoginPage } from '@/features/auth/LoginPage'
+import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { ProductsPage } from '@/features/products/ProductsPage'
 import { RecordSalePage } from '@/features/transactions/RecordSalePage'
 import { TransactionHistory } from '@/features/transactions/TransactionHistory'
 import { ReportsPage } from '@/features/reports/ReportsPage'
+import { ToastProvider } from '@/components/ui/Toast'
 import { useAuthRedirect } from '@/hooks/useAuthRedirect'
 
 const queryClient = new QueryClient({
@@ -35,31 +37,24 @@ function ProtectedRoute() {
   return <Layout />
 }
 
-function Dashboard() {
-  return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
-      <p className="text-gray-500 mt-2">Selamat datang di PosLite!</p>
-    </div>
-  )
-}
-
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/transactions" element={<RecordSalePage />} />
-            <Route path="/transactions/history" element={<TransactionHistory />} />
-            <Route path="/reports" element={<ReportsPage />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <ToastProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/transactions" element={<RecordSalePage />} />
+              <Route path="/transactions/history" element={<TransactionHistory />} />
+              <Route path="/reports" element={<ReportsPage />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </ToastProvider>
     </QueryClientProvider>
   )
 }
