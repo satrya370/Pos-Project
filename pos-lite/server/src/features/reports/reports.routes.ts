@@ -6,6 +6,8 @@ const router = Router()
 
 router.use(authMiddleware)
 
+router.get('/profit-margin', reportsController.getProfitMargin)
+router.get('/comparison', reportsController.getPeriodComparison)
 router.get('/analytics', reportsController.getAnalytics)
 router.get('/export', reportsController.exportReport)
 router.get('/daily', reportsController.getDailyReport)

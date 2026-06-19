@@ -220,3 +220,100 @@ export async function getAnalytics(ownerId: string, period: number, categoryId?:
     ])
   return { topProducts, topCategories, topCustomers, topProductsByCategory, topBundles }
 }
+
+export async function getProfitMargin(ownerId: string, period: number) {
+  const { start } = getDateRange(period)
+  const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+    SELECT
+      p.id as productId,
+      p.name as productName,
+      COALESCE(c.name, 'Tanpa Kategori') as categoryName,
+      p.purchasePrice as costPrice,
+      AVG(ti.unitPrice) as avgSellingPrice,
+      CAST(SUM(ti.quantity) AS INTEGER) as totalQty,
+      SUM(ti.quantity * ti.unitPrice) as totalRevenue,
+      SUM(ti.quantity * (ti.unitPrice - p.purchasePrice)) as totalProfit,
+      CASE WHEN AVG(ti.unitPrice) > 0 AND p.purchasePrice > 0
+        THEN (AVG(ti.unitPrice) - p.purchasePrice) / AVG(ti.unitPrice) * 100
+        ELSE NULL
+      END as marginPercent
+    FROM TransactionItem ti
+    JOIN "Transaction" t ON ti.transactionId = t.id
+    JOIN Product p ON ti.productId = p.id
+    LEFT JOIN Category c ON p.categoryId = c.id
+    WHERE t.ownerId = ${ownerId}
+      AND t.status = 'completed'
+      AND t.createdAt >= ${start.toISOString()}
+    GROUP BY p.id, p.name, c.name, p.purchasePrice
+    ORDER BY marginPercent DESC NULLS LAST
+    LIMIT 20
+  `)
+
+  return (rows as any[]).map(r => ({
+    productId: r.productId as string,
+    productName: r.productName as string,
+    categoryName: r.categoryName as string,
+    costPrice: Number(r.costPrice),
+    avgSellingPrice: Number(r.avgSellingPrice),
+    totalQty: Number(r.totalQty),
+    totalRevenue: Number(r.totalRevenue),
+    totalProfit: Number(r.totalProfit),
+    marginPercent: r.marginPercent != null ? Number(r.marginPercent) : null,
+  }))
+}
+
+export async function getPeriodComparison(ownerId: string, period: number) {
+  const now = new Date()
+
+  const currentStart = new Date(now)
+  currentStart.setDate(currentStart.getDate() - period)
+  currentStart.setHours(0, 0, 0, 0)
+
+  const previousEnd = new Date(currentStart)
+  const previousStart = new Date(previousEnd)
+  previousStart.setDate(previousStart.getDate() - period)
+  previousStart.setHours(0, 0, 0, 0)
+
+  const [current, previous] = await Promise.all([
+    prisma.transaction.aggregate({
+      where: {
+        ownerId,
+        status: 'completed',
+        createdAt: { gte: currentStart, lte: now },
+      },
+      _sum: { totalAmount: true },
+      _count: { id: true },
+      _avg: { totalAmount: true },
+    }),
+    prisma.transaction.aggregate({
+      where: {
+        ownerId,
+        status: 'completed',
+        createdAt: { gte: previousStart, lt: previousEnd },
+      },
+      _sum: { totalAmount: true },
+      _count: { id: true },
+      _avg: { totalAmount: true },
+    }),
+  ])
+
+  const curRevenue = current._sum.totalAmount ?? 0
+  const prevRevenue = previous._sum.totalAmount ?? 0
+  const curTx = current._count.id
+  const prevTx = previous._count.id
+  const curAvg = current._avg.totalAmount ?? 0
+  const prevAvg = previous._avg.totalAmount ?? 0
+
+  const delta = (cur: number, prev: number): number | null =>
+    prev === 0 ? null : ((cur - prev) / prev) * 100
+
+  return {
+    current:  { revenue: curRevenue,  txCount: curTx,  avgOrderValue: curAvg },
+    previous: { revenue: prevRevenue, txCount: prevTx, avgOrderValue: prevAvg },
+    delta: {
+      revenuePercent:       delta(curRevenue, prevRevenue),
+      txCountPercent:       delta(curTx, prevTx),
+      avgOrderValuePercent: delta(curAvg, prevAvg),
+    },
+  }
+}

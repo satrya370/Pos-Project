@@ -103,3 +103,23 @@ export async function getAnalytics(req: AuthRequest, res: Response, next: NextFu
     next(err)
   }
 }
+
+export async function getProfitMargin(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const period = parseInt(req.query.period as string) || 30
+    const data = await analyticsService.getProfitMargin(req.ownerId!, period)
+    res.json({ success: true, data })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getPeriodComparison(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const period = parseInt(req.query.period as string) || 7
+    const data = await analyticsService.getPeriodComparison(req.ownerId!, period)
+    res.json({ success: true, data })
+  } catch (err) {
+    next(err)
+  }
+}
