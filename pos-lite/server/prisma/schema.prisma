@@ -1,0 +1,141 @@
+// Prisma schema for PosLite
+// Database: SQLite (dev) / PostgreSQL (prod)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Owner {
+  id             String    @id @default(uuid())
+  name           String
+  email          String    @unique
+  passwordHash   String
+  phone          String?
+  waNumber       String?
+  telegramChatId String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  products      Product[]
+  categories    Category[]
+  transactions  Transaction[]
+  suppliers     Supplier[]
+  insights      AIInsightCache[]
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  ownerId   String
+  name      String
+  icon      String?
+  createdAt DateTime  @default(now())
+
+  owner    Owner     @relation(fields: [ownerId], references: [id])
+  products Product[]
+
+  @@unique([ownerId, name])
+}
+
+model Supplier {
+  id        String    @id @default(uuid())
+  ownerId   String
+  name      String
+  contact  String?
+  phone     String?
+  address   String?
+  createdAt DateTime  @default(now())
+
+  owner    Owner     @relation(fields: [ownerId], references: [id])
+  products Product[]
+
+  @@unique([ownerId, name])
+}
+
+model Product {
+  id                 String    @id @default(uuid())
+  ownerId            String
+  categoryId         String?
+  supplierId         String?
+  sku                String?
+  name               String
+  description        String?
+  purchasePrice      Float     @default(0)
+  sellingPrice       Float
+  stock              Int       @default(0)
+  minStockThreshold  Int       @default(5)
+  hasVariants        Boolean   @default(false)
+  variants           String?
+  isBundle           Boolean   @default(false)
+  bundleProducts     String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  owner             Owner             @relation(fields: [ownerId], references: [id])
+  category          Category?         @relation(fields: [categoryId], references: [id])
+  supplier          Supplier?         @relation(fields: [supplierId], references: [id])
+  transactionItems  TransactionItem[]
+  stockMovements    StockMovement[]
+}
+
+model Transaction {
+  id            String      @id @default(uuid())
+  ownerId       String
+  invoiceNumber String      @unique
+  totalAmount   Float
+  totalCost     Float
+  profit        Float
+  itemsCount    Int
+  notes         String?
+  status        String      @default("completed")
+  createdAt     DateTime    @default(now())
+
+  owner Owner             @relation(fields: [ownerId], references: [id])
+  items TransactionItem[]
+}
+
+model TransactionItem {
+  id              String      @id @default(uuid())
+  transactionId   String
+  productId       String?
+  productName     String
+  variant         String?
+  quantity        Int
+  unitPrice       Float
+  costAtPurchase  Float
+  subtotal        Float
+
+  transaction Transaction  @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  product     Product?     @relation(fields: [productId], references: [id])
+}
+
+model StockMovement {
+  id          String    @id @default(uuid())
+  productId   String
+  type        String
+  quantity    Int
+  referenceId String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model AIInsightCache {
+  id          String    @id @default(uuid())
+  ownerId     String
+  type        String
+  period      String
+  content     String
+  metadata    String?
+  generatedAt DateTime  @default(now())
+  expiresAt   DateTime
+
+  owner Owner @relation(fields: [ownerId], references: [id])
+
+  @@index([ownerId, type, period])
+}
