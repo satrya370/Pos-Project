@@ -8,6 +8,8 @@ import { TopProductsByCategory } from './TopProductsByCategory'
 import { TopBundleList } from './TopBundleList'
 import { PeriodComparison } from './PeriodComparison'
 import { ProfitMarginTable } from './ProfitMarginTable'
+import { DeadStockTable } from './DeadStockTable'
+import { PeakTimeCharts } from './PeakTimeCharts'
 
 type Period = 1 | 7 | 30
 
@@ -127,6 +129,16 @@ export function AnalyticsTab() {
             ) : (
               <ProfitMarginTable data={marginData ?? []} />
             )}
+          </Card>
+
+          {/* Phase 3 — Peak Time */}
+          <Card className="p-5">
+            <PeakTimeCharts period={period} />
+          </Card>
+
+          {/* Phase 3 — Dead Stock */}
+          <Card className="p-5">
+            <DeadStockTable period={period} />
           </Card>
         </div>
       )}
