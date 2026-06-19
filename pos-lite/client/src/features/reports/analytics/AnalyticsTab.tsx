@@ -60,17 +60,6 @@ export function AnalyticsTab() {
         <div className="space-y-6">
           {/* Phase 1 grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Top Produk */}
-            <Card className="p-5">
-              <p className="text-xs text-gray-400 mb-3">({periodLabel})</p>
-              <TopBarChart
-                title="Top Produk Terlaris"
-                data={data.topProducts.map(d => ({ label: d.productName, value: d.totalQty }))}
-                formatValue={v => `${v} pcs`}
-                color="#6366f1"
-              />
-            </Card>
-
             {/* Top Kategori */}
             <Card className="p-5">
               <p className="text-xs text-gray-400 mb-3">({periodLabel})</p>

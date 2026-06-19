@@ -317,3 +317,88 @@ export async function getPeriodComparison(ownerId: string, period: number) {
     },
   }
 }
+
+export async function getDeadStock(ownerId: string, threshold: number) {
+  const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+    SELECT
+      p.id as productId,
+      p.name as productName,
+      COALESCE(c.name, 'Tanpa Kategori') as categoryName,
+      CAST(COALESCE(SUM(ps.stock), 0) AS INTEGER) as currentStock,
+      MAX(t.createdAt) as lastSoldAt,
+      CASE
+        WHEN MAX(t.createdAt) IS NOT NULL
+        THEN CAST((JULIANDAY('now') - JULIANDAY(MAX(t.createdAt))) AS INTEGER)
+        ELSE NULL
+      END as daysSinceLastSale
+    FROM Product p
+    LEFT JOIN Category c ON p.categoryId = c.id
+    LEFT JOIN ProductSize ps ON ps.productId = p.id
+    LEFT JOIN TransactionItem ti ON ti.productId = p.id
+    LEFT JOIN "Transaction" t ON ti.transactionId = t.id
+      AND t.ownerId = ${ownerId}
+      AND t.status = 'completed'
+    WHERE p.ownerId = ${ownerId}
+    GROUP BY p.id, p.name, c.name
+    HAVING currentStock > 0
+      AND (lastSoldAt IS NULL OR daysSinceLastSale >= ${threshold})
+    ORDER BY daysSinceLastSale DESC NULLS FIRST
+  `)
+
+  return (rows as any[]).map(r => ({
+    productId: r.productId as string,
+    productName: r.productName as string,
+    categoryName: r.categoryName as string,
+    currentStock: Number(r.currentStock),
+    lastSoldAt: r.lastSoldAt as string | null,
+    daysSinceLastSale: r.daysSinceLastSale != null ? Number(r.daysSinceLastSale) : null,
+  }))
+}
+
+export async function getPeakTime(ownerId: string, period: number) {
+  const { start } = getDateRange(period)
+
+  const [hourRows, dayRows] = await Promise.all([
+    prisma.$queryRaw<any[]>(Prisma.sql`
+      SELECT
+        CAST(strftime('%H', createdAt) AS INTEGER) as hour,
+        CAST(COUNT(*) AS INTEGER) as txCount,
+        SUM(totalAmount) as revenue
+      FROM "Transaction"
+      WHERE ownerId = ${ownerId}
+        AND status = 'completed'
+        AND createdAt >= ${start.toISOString()}
+      GROUP BY strftime('%H', createdAt)
+      ORDER BY hour ASC
+    `),
+    prisma.$queryRaw<any[]>(Prisma.sql`
+      SELECT
+        CAST(strftime('%w', createdAt) AS INTEGER) as day,
+        CAST(COUNT(*) AS INTEGER) as txCount,
+        SUM(totalAmount) as revenue
+      FROM "Transaction"
+      WHERE ownerId = ${ownerId}
+        AND status = 'completed'
+        AND createdAt >= ${start.toISOString()}
+      GROUP BY strftime('%w', createdAt)
+      ORDER BY day ASC
+    `),
+  ])
+
+  // Fill missing hours (0-23) with zeros
+  const hourMap = new Map(hourRows.map((r: any) => [Number(r.hour), r]))
+  const byHour = Array.from({ length: 24 }, (_, h) => {
+    const r = hourMap.get(h)
+    return { hour: h, txCount: r ? Number(r.txCount) : 0, revenue: r ? Number(r.revenue) : 0 }
+  })
+
+  // Fill missing days (0-6) with zeros
+  const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+  const dayMap = new Map(dayRows.map((r: any) => [Number(r.day), r]))
+  const byDay = Array.from({ length: 7 }, (_, d) => {
+    const r = dayMap.get(d)
+    return { day: d, dayName: dayNames[d], txCount: r ? Number(r.txCount) : 0, revenue: r ? Number(r.revenue) : 0 }
+  })
+
+  return { byHour, byDay }
+}

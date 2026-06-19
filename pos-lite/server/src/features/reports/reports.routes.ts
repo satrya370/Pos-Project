@@ -6,6 +6,8 @@ const router = Router()
 
 router.use(authMiddleware)
 
+router.get('/dead-stock', reportsController.getDeadStock)
+router.get('/peak-time', reportsController.getPeakTime)
 router.get('/profit-margin', reportsController.getProfitMargin)
 router.get('/comparison', reportsController.getPeriodComparison)
 router.get('/analytics', reportsController.getAnalytics)

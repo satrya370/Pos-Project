@@ -72,6 +72,30 @@ export async function getPeriodComparison(period: number): Promise<PeriodCompari
   return response.data.data
 }
 
+export interface DeadStockItem {
+  productId: string
+  productName: string
+  categoryName: string
+  currentStock: number
+  lastSoldAt: string | null
+  daysSinceLastSale: number | null
+}
+
+export interface PeakTimeData {
+  byHour: { hour: number; txCount: number; revenue: number }[]
+  byDay: { day: number; dayName: string; txCount: number; revenue: number }[]
+}
+
+export async function getDeadStock(threshold: number): Promise<DeadStockItem[]> {
+  const response = await api.get('/reports/dead-stock', { params: { threshold } })
+  return response.data.data
+}
+
+export async function getPeakTime(period: number): Promise<PeakTimeData> {
+  const response = await api.get('/reports/peak-time', { params: { period } })
+  return response.data.data
+}
+
 export async function exportReport(
   type: 'daily' | 'monthly',
   format: 'pdf' | 'excel',

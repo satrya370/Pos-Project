@@ -123,3 +123,23 @@ export async function getPeriodComparison(req: AuthRequest, res: Response, next:
     next(err)
   }
 }
+
+export async function getDeadStock(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const threshold = parseInt(req.query.threshold as string) || 30
+    const data = await analyticsService.getDeadStock(req.ownerId!, threshold)
+    res.json({ success: true, data })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getPeakTime(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const period = parseInt(req.query.period as string) || 30
+    const data = await analyticsService.getPeakTime(req.ownerId!, period)
+    res.json({ success: true, data })
+  } catch (err) {
+    next(err)
+  }
+}

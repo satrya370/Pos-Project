@@ -15,7 +15,8 @@ export function ReportsPage() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [selectedWeek, setSelectedWeek] = useState(format(new Date(), "yyyy-'W'II"))
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'))
-  const [period, setPeriod] = useState('monthly')
+  const [topPeriod, setTopPeriod] = useState<1|7|30>(7)
+  const topPeriodMap: Record<1|7|30, string> = { 1: 'daily', 7: 'weekly', 30: 'monthly' }
   const [isExporting, setIsExporting] = useState(false)
 
   const handleExport = async (type: 'daily' | 'monthly', fmt: 'pdf' | 'excel') => {
@@ -52,8 +53,8 @@ export function ReportsPage() {
   })
 
   const { data: topProducts, isLoading: isLoadingTop } = useQuery({
-    queryKey: ['reports', 'top-products', period],
-    queryFn: () => getTopProducts(period),
+    queryKey: ['reports', 'top-products', topPeriod],
+    queryFn: () => getTopProducts(topPeriodMap[topPeriod]),
     enabled: activeTab === 'top-products',
   })
 
@@ -262,17 +263,21 @@ export function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="top-products" className="space-y-4">
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium text-gray-700">Periode:</label>
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="daily">Harian</option>
-              <option value="weekly">Mingguan</option>
-              <option value="monthly">Bulanan</option>
-            </select>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">Periode:</span>
+            {([1, 7, 30] as (1|7|30)[]).map(p => (
+              <button
+                key={p}
+                onClick={() => setTopPeriod(p)}
+                className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
+                  topPeriod === p
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {p === 1 ? 'Hari Ini' : `${p} Hari`}
+              </button>
+            ))}
           </div>
 
           {isLoadingTop ? (
