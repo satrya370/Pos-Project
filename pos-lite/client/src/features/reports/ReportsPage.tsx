@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/Tabs'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import { TrendingUp, TrendingDown, BarChart3, Calendar, Trophy, AlertTriangle, FileDown, FileSpreadsheet } from 'lucide-react'
+import { AnalyticsTab } from './analytics/AnalyticsTab'
 
 export function ReportsPage() {
   const [activeTab, setActiveTab] = useState('daily')
@@ -69,6 +70,7 @@ export function ReportsPage() {
           <TabsTrigger value="weekly">Mingguan</TabsTrigger>
           <TabsTrigger value="monthly">Bulanan</TabsTrigger>
           <TabsTrigger value="top-products">Top Produk</TabsTrigger>
+          <TabsTrigger value="analytics">Analitik</TabsTrigger>
         </TabsList>
 
         <TabsContent value="daily" className="space-y-4">
@@ -328,6 +330,10 @@ export function ReportsPage() {
               </Card>
             </div>
           ) : null}
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <AnalyticsTab />
         </TabsContent>
       </Tabs>
     </div>
