@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express'
 import { AuthRequest } from '../../middlewares/auth.js'
 import * as reportsService from './reports.service.js'
 import * as exportService from './reports.export.service.js'
+import * as analyticsService from './reports.analytics.service.js'
 import { BadRequestError } from '../../lib/errors.js'
 
 export async function getDailyReport(req: AuthRequest, res: Response, next: NextFunction) {
@@ -87,6 +88,17 @@ export async function exportReport(req: AuthRequest, res: Response, next: NextFu
     res.setHeader('Content-Type', contentType)
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
     res.send(buffer)
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function getAnalytics(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const period = parseInt(req.query.period as string) || 7
+    const categoryId = req.query.categoryId as string | undefined
+    const data = await analyticsService.getAnalytics(req.ownerId!, period, categoryId)
+    res.json({ success: true, data })
   } catch (err) {
     next(err)
   }

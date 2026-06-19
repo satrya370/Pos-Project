@@ -25,6 +25,21 @@ export async function getTopProducts(period?: string): Promise<TopProductsReport
   return response.data.data
 }
 
+export interface AnalyticsData {
+  topProducts: { productId: string; productName: string; totalQty: number; totalRevenue: number }[]
+  topCategories: { categoryId: string; categoryName: string; totalQty: number; totalRevenue: number }[]
+  topCustomers: { label: string; txCount: number; totalSpend: number }[]
+  topProductsByCategory: { productId: string; productName: string; categoryName: string; totalQty: number }[]
+  topBundles: { productAName: string; productBName: string; frequency: number; badge: 'strong' | 'moderate' | 'weak' }[]
+}
+
+export async function getAnalytics(period: number, categoryId?: string): Promise<AnalyticsData> {
+  const params: Record<string, string> = { period: String(period) }
+  if (categoryId) params.categoryId = categoryId
+  const response = await api.get('/reports/analytics', { params })
+  return response.data.data
+}
+
 export async function exportReport(
   type: 'daily' | 'monthly',
   format: 'pdf' | 'excel',
