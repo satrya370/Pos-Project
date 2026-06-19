@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 const transactionItemSchema = z.object({
   productId: z.string().min(1, 'Product ID wajib diisi'),
+  productSizeId: z.string().min(1, 'Product Size ID wajib diisi'),
   quantity: z.number().int().positive('Quantity harus lebih dari 0'),
 })
 

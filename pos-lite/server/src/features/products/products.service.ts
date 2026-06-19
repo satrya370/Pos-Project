@@ -1,11 +1,17 @@
 import { prisma } from '../../lib/prisma.js'
 import { NotFoundError, BadRequestError } from '../../lib/errors.js'
-import { CreateProductInput, UpdateProductInput, RestockInput } from './products.types.js'
+import { CreateProductInput, UpdateProductInput, CreateSizeInput, UpdateSizeInput, RestockSizeInput } from './products.types.js'
+import fs from 'fs/promises'
+import path from 'path'
+import { uploadConfig } from '../../config/upload.js'
 
 export async function getProducts(ownerId: string) {
   return prisma.product.findMany({
     where: { ownerId },
-    include: { category: { select: { id: true, name: true, icon: true } } },
+    include: {
+      category: { select: { id: true, name: true, icon: true } },
+      sizes: { orderBy: { name: 'asc' } },
+    },
     orderBy: { createdAt: 'desc' },
   })
 }
@@ -13,7 +19,10 @@ export async function getProducts(ownerId: string) {
 export async function getProductById(ownerId: string, productId: string) {
   const product = await prisma.product.findFirst({
     where: { id: productId, ownerId },
-    include: { category: { select: { id: true, name: true, icon: true } } },
+    include: {
+      category: { select: { id: true, name: true, icon: true } },
+      sizes: { orderBy: { name: 'asc' } },
+    },
   })
 
   if (!product) throw new NotFoundError('Produk tidak ditemukan')
@@ -31,7 +40,24 @@ export async function createProduct(ownerId: string, input: CreateProductInput) 
     if (!supplier) throw new NotFoundError('Supplier tidak ditemukan')
   }
 
-  return prisma.product.create({ data: { ...input, ownerId } })
+  const { sizes, ...productData } = input
+
+  const product = await prisma.product.create({
+    data: {
+      ...productData,
+      ownerId,
+      sizes: {
+        create: sizes.map(size => ({
+          name: size.name,
+          stock: size.stock,
+          sku: size.sku,
+        })),
+      },
+    },
+    include: { sizes: true },
+  })
+
+  return product
 }
 
 export async function updateProduct(ownerId: string, productId: string, input: UpdateProductInput) {
@@ -43,7 +69,11 @@ export async function updateProduct(ownerId: string, productId: string, input: U
     if (!category) throw new NotFoundError('Kategori tidak ditemukan')
   }
 
-  return prisma.product.update({ where: { id: productId }, data: input })
+  return prisma.product.update({
+    where: { id: productId },
+    data: input,
+    include: { sizes: true },
+  })
 }
 
 export async function deleteProduct(ownerId: string, productId: string) {
@@ -53,15 +83,128 @@ export async function deleteProduct(ownerId: string, productId: string) {
   const hasTransactions = await prisma.transactionItem.findFirst({ where: { productId } })
   if (hasTransactions) throw new BadRequestError('Produk tidak bisa dihapus karena sudah ada transaksi')
 
+  // Delete image if exists
+  if (existing.imageUrl) {
+    const imagePath = path.join(uploadConfig.uploadDir, path.basename(existing.imageUrl))
+    await fs.unlink(imagePath).catch(() => {})
+  }
+
   return prisma.product.delete({ where: { id: productId } })
 }
 
-export async function restock(ownerId: string, productId: string, input: RestockInput) {
+export async function uploadProductImage(ownerId: string, productId: string, file: Express.Multer.File) {
+  const existing = await prisma.product.findFirst({ where: { id: productId, ownerId } })
+  if (!existing) throw new NotFoundError('Produk tidak ditemukan')
+
+  // Delete old image if exists
+  if (existing.imageUrl) {
+    const oldImagePath = path.join(uploadConfig.uploadDir, path.basename(existing.imageUrl))
+    await fs.unlink(oldImagePath).catch(() => {})
+  }
+
+  const imageUrl = `/uploads/products/${file.filename}`
+
+  return prisma.product.update({
+    where: { id: productId },
+    data: { imageUrl },
+    include: { sizes: true },
+  })
+}
+
+export async function deleteProductImage(ownerId: string, productId: string) {
+  const existing = await prisma.product.findFirst({ where: { id: productId, ownerId } })
+  if (!existing) throw new NotFoundError('Produk tidak ditemukan')
+
+  if (existing.imageUrl) {
+    const imagePath = path.join(uploadConfig.uploadDir, path.basename(existing.imageUrl))
+    await fs.unlink(imagePath).catch(() => {})
+  }
+
+  return prisma.product.update({
+    where: { id: productId },
+    data: { imageUrl: null },
+    include: { sizes: true },
+  })
+}
+
+// Size CRUD
+export async function getSizes(ownerId: string, productId: string) {
   const product = await prisma.product.findFirst({ where: { id: productId, ownerId } })
   if (!product) throw new NotFoundError('Produk tidak ditemukan')
 
-  const updated = await prisma.product.update({
-    where: { id: productId },
+  return prisma.productSize.findMany({
+    where: { productId },
+    orderBy: { name: 'asc' },
+  })
+}
+
+export async function createSize(ownerId: string, productId: string, input: CreateSizeInput) {
+  const product = await prisma.product.findFirst({ where: { id: productId, ownerId } })
+  if (!product) throw new NotFoundError('Produk tidak ditemukan')
+
+  const existingSize = await prisma.productSize.findFirst({
+    where: { productId, name: input.name },
+  })
+  if (existingSize) throw new BadRequestError(`Ukuran ${input.name} sudah ada`)
+
+  return prisma.productSize.create({
+    data: {
+      productId,
+      name: input.name,
+      stock: input.stock,
+      sku: input.sku,
+    },
+  })
+}
+
+export async function updateSize(ownerId: string, productId: string, sizeId: string, input: UpdateSizeInput) {
+  const product = await prisma.product.findFirst({ where: { id: productId, ownerId } })
+  if (!product) throw new NotFoundError('Produk tidak ditemukan')
+
+  const existingSize = await prisma.productSize.findFirst({
+    where: { id: sizeId, productId },
+  })
+  if (!existingSize) throw new NotFoundError('Ukuran tidak ditemukan')
+
+  if (input.name && input.name !== existingSize.name) {
+    const duplicateSize = await prisma.productSize.findFirst({
+      where: { productId, name: input.name, id: { not: sizeId } },
+    })
+    if (duplicateSize) throw new BadRequestError(`Ukuran ${input.name} sudah ada`)
+  }
+
+  return prisma.productSize.update({
+    where: { id: sizeId },
+    data: input,
+  })
+}
+
+export async function deleteSize(ownerId: string, productId: string, sizeId: string) {
+  const product = await prisma.product.findFirst({ where: { id: productId, ownerId } })
+  if (!product) throw new NotFoundError('Produk tidak ditemukan')
+
+  const existingSize = await prisma.productSize.findFirst({
+    where: { id: sizeId, productId },
+  })
+  if (!existingSize) throw new NotFoundError('Ukuran tidak ditemukan')
+
+  const hasTransactions = await prisma.transactionItem.findFirst({ where: { productSizeId: sizeId } })
+  if (hasTransactions) throw new BadRequestError('Ukuran tidak bisa dihapus karena sudah ada transaksi')
+
+  return prisma.productSize.delete({ where: { id: sizeId } })
+}
+
+export async function restockSize(ownerId: string, productId: string, sizeId: string, input: RestockSizeInput) {
+  const product = await prisma.product.findFirst({ where: { id: productId, ownerId } })
+  if (!product) throw new NotFoundError('Produk tidak ditemukan')
+
+  const existingSize = await prisma.productSize.findFirst({
+    where: { id: sizeId, productId },
+  })
+  if (!existingSize) throw new NotFoundError('Ukuran tidak ditemukan')
+
+  const updated = await prisma.productSize.update({
+    where: { id: sizeId },
     data: { stock: { increment: input.quantity } },
   })
 
@@ -70,7 +213,7 @@ export async function restock(ownerId: string, productId: string, input: Restock
       productId,
       type: 'IN',
       quantity: input.quantity,
-      notes: input.notes || `Restock ${input.quantity} unit`,
+      notes: input.notes || `Restock ${existingSize.name} ${input.quantity} unit`,
     },
   })
 
@@ -80,8 +223,17 @@ export async function restock(ownerId: string, productId: string, input: Restock
 export async function getLowStockProducts(ownerId: string) {
   const products = await prisma.product.findMany({
     where: { ownerId },
-    select: { id: true, name: true, stock: true, minStockThreshold: true },
+    include: {
+      sizes: {
+        select: { id: true, name: true, stock: true },
+      },
+    },
   })
 
-  return products.filter(p => p.stock < p.minStockThreshold)
+  return products.filter(p => {
+    if (p.sizes.length === 0) {
+      return false
+    }
+    return p.sizes.some(s => s.stock < 5)
+  })
 }

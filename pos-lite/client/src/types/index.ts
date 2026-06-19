@@ -35,6 +35,14 @@ export interface Category {
   icon?: string | null
 }
 
+export interface ProductSize {
+  id: string
+  productId: string
+  name: string
+  stock: number
+  sku?: string | null
+}
+
 export interface Product {
   id: string
   ownerId: string
@@ -45,15 +53,14 @@ export interface Product {
   description?: string | null
   purchasePrice: number
   sellingPrice: number
-  stock: number
+  imageUrl?: string | null
   minStockThreshold: number
-  hasVariants: boolean
-  variants?: string | null
   isBundle: boolean
   bundleProducts?: string | null
   createdAt: string
   updatedAt: string
   category?: Category | null
+  sizes: ProductSize[]
 }
 
 export interface CreateProductInput {
@@ -64,22 +71,27 @@ export interface CreateProductInput {
   description?: string | null
   purchasePrice?: number
   sellingPrice: number
-  stock?: number
   minStockThreshold?: number
-  hasVariants?: boolean
-  variants?: string | null
   isBundle?: boolean
   bundleProducts?: string | null
+  sizes?: { name: string; stock: number; sku?: string | null }[]
 }
 
 export type UpdateProductInput = Partial<CreateProductInput>
+
+export interface CreateSizeInput {
+  name: string
+  stock?: number
+  sku?: string | null
+}
 
 export interface TransactionItem {
   id: string
   transactionId: string
   productId?: string | null
+  productSizeId?: string | null
   productName: string
-  variant?: string | null
+  size?: string | null
   quantity: number
   unitPrice: number
   costAtPurchase: number
@@ -101,8 +113,19 @@ export interface Transaction {
 }
 
 export interface CreateTransactionInput {
-  items: { productId: string; quantity: number }[]
+  items: { productId: string; productSizeId: string; quantity: number }[]
   notes?: string | null
+}
+
+export interface CartItem {
+  id: string
+  productId: string
+  productSizeId: string
+  productName: string
+  size: string
+  price: number
+  quantity: number
+  imageUrl?: string | null
 }
 
 export interface ProductRank {

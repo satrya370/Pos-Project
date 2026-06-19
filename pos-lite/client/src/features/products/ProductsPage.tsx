@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
 import { ProductForm } from './ProductForm'
-import { Plus, Edit, Trash2, Search } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, ShoppingBag } from 'lucide-react'
 import { Product } from '@/types'
 
 export function ProductsPage() {
@@ -37,6 +37,9 @@ export function ProductsPage() {
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price)
+
+  const getTotalStock = (product: Product) =>
+    product.sizes.reduce((sum, size) => sum + size.stock, 0)
 
   return (
     <div className="space-y-6">
@@ -68,6 +71,7 @@ export function ProductsPage() {
         </div>
       ) : filteredProducts.length === 0 ? (
         <Card className="p-12 text-center">
+          <ShoppingBag className="h-12 w-12 mx-auto mb-3 text-gray-300" />
           <p className="text-gray-500">Tidak ada produk ditemukan</p>
         </Card>
       ) : (
@@ -76,11 +80,12 @@ export function ProductsPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produk</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Harga Beli</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Harga Jual</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Stok</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ukuran</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Stok</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
                 </tr>
@@ -89,17 +94,40 @@ export function ProductsPage() {
                 {filteredProducts.map((product) => (
                   <tr key={product.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">{product.name}</div>
-                      {product.description && (
-                        <div className="text-xs text-gray-500 mt-0.5">{product.description}</div>
-                      )}
+                      <div className="flex items-center gap-3">
+                        {product.imageUrl ? (
+                          <img src={product.imageUrl} alt={product.name} className="w-10 h-10 rounded object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center">
+                            <ShoppingBag className="h-5 w-5 text-gray-400" />
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-medium text-gray-900">{product.name}</div>
+                          {product.description && (
+                            <div className="text-xs text-gray-500 mt-0.5 truncate max-w-[200px]">{product.description}</div>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">{product.sku || '-'}</td>
                     <td className="px-4 py-3 text-sm text-right text-gray-500">{formatPrice(product.purchasePrice)}</td>
                     <td className="px-4 py-3 text-sm text-right font-medium">{formatPrice(product.sellingPrice)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        {product.sizes.map(size => (
+                          <Badge
+                            key={size.id}
+                            variant={size.stock === 0 ? 'danger' : size.stock < 5 ? 'warning' : 'default'}
+                          >
+                            {size.name}: {size.stock}
+                          </Badge>
+                        ))}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-sm text-right">
-                      <Badge variant={product.stock <= product.minStockThreshold ? 'danger' : 'default'}>
-                        {product.stock}
+                      <Badge variant={getTotalStock(product) === 0 ? 'danger' : 'default'}>
+                        {getTotalStock(product)}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">{product.category?.name || '-'}</td>

@@ -34,12 +34,21 @@ export function LowStockAlert() {
         <Badge variant="warning">{lowStockProducts.length}</Badge>
       </div>
       <ul className="space-y-2">
-        {lowStockProducts.map((product) => (
-          <li key={product.id} className="flex items-center justify-between text-sm">
-            <span className="text-gray-700">{product.name}</span>
-            <Badge variant="danger">{product.stock} unit</Badge>
-          </li>
-        ))}
+        {lowStockProducts.map((product) => {
+          const lowSizes = product.sizes.filter(s => s.stock < 5)
+          return (
+            <li key={product.id} className="flex items-center justify-between text-sm">
+              <span className="text-gray-700">{product.name}</span>
+              <div className="flex flex-wrap gap-1">
+                {lowSizes.map(size => (
+                  <Badge key={size.id} variant="danger">
+                    {size.name}: {size.stock}
+                  </Badge>
+                ))}
+              </div>
+            </li>
+          )
+        })}
       </ul>
     </Card>
   )
