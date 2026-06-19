@@ -214,10 +214,22 @@ export async function restockSize(ownerId: string, productId: string, sizeId: st
       type: 'IN',
       quantity: input.quantity,
       notes: input.notes || `Restock ${existingSize.name} ${input.quantity} unit`,
+      purchasePrice: input.purchasePrice ?? null,
+      invoiceNumber: input.invoiceNumber ?? null,
+      supplierId:    input.supplierId ?? null,
     },
   })
 
   return updated
+}
+
+export async function getRestockHistory(ownerId: string, productId: string) {
+  const product = await prisma.product.findFirst({ where: { id: productId, ownerId } })
+  if (!product) throw new NotFoundError('Produk tidak ditemukan')
+  return prisma.stockMovement.findMany({
+    where: { productId, type: 'IN' },
+    orderBy: { createdAt: 'desc' },
+  })
 }
 
 export async function getLowStockProducts(ownerId: string) {

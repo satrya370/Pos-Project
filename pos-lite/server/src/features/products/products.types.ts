@@ -29,8 +29,11 @@ export const createSizeSchema = z.object({
 export const updateSizeSchema = createSizeSchema.partial()
 
 export const restockSizeSchema = z.object({
-  quantity: z.number().int().positive('Quantity harus lebih dari 0'),
-  notes: z.string().nullable().optional(),
+  quantity:      z.number().int().positive('Quantity harus lebih dari 0'),
+  notes:         z.string().nullable().optional(),
+  purchasePrice: z.number().min(0).nullable().optional(),
+  invoiceNumber: z.string().nullable().optional(),
+  supplierId:    z.string().nullable().optional(),
 })
 
 export type CreateProductInput = z.infer<typeof createProductSchema>

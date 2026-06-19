@@ -26,6 +26,7 @@ model Owner {
   categories    Category[]
   transactions  Transaction[]
   suppliers     Supplier[]
+  customers     Customer[]
   insights      AIInsightCache[]
 }
 
@@ -104,10 +105,15 @@ model Transaction {
   itemsCount    Int
   notes         String?
   status        String      @default("completed")
+  paymentStatus String      @default("paid")
+  customerId    String?
+  customerName  String?
   createdAt     DateTime    @default(now())
 
-  owner Owner             @relation(fields: [ownerId], references: [id])
-  items TransactionItem[]
+  owner        Owner             @relation(fields: [ownerId], references: [id])
+  customer     Customer?         @relation(fields: [customerId], references: [id])
+  items        TransactionItem[]
+  debtPayments DebtPayment[]
 }
 
 model TransactionItem {
@@ -120,6 +126,8 @@ model TransactionItem {
   quantity        Int
   unitPrice       Float
   costAtPurchase  Float
+  discountPercent Float       @default(0)
+  discountAmount  Float       @default(0)
   subtotal        Float
 
   transaction Transaction  @relation(fields: [transactionId], references: [id], onDelete: Cascade)
@@ -127,15 +135,46 @@ model TransactionItem {
 }
 
 model StockMovement {
-  id          String    @id @default(uuid())
-  productId   String
-  type        String
-  quantity    Int
-  referenceId String?
-  notes       String?
-  createdAt   DateTime  @default(now())
+  id            String    @id @default(uuid())
+  productId     String
+  type          String
+  quantity      Int
+  referenceId   String?
+  notes         String?
+  purchasePrice Float?
+  invoiceNumber String?
+  supplierId    String?
+  createdAt     DateTime  @default(now())
 
   product Product @relation(fields: [productId], references: [id])
+}
+
+model Customer {
+  id        String    @id @default(uuid())
+  ownerId   String
+  name      String
+  phone     String?
+  email     String?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  owner        Owner         @relation(fields: [ownerId], references: [id])
+  transactions Transaction[]
+
+  @@unique([ownerId, phone])
+  @@index([ownerId])
+}
+
+model DebtPayment {
+  id            String    @id @default(uuid())
+  transactionId String
+  amount        Float
+  notes         String?
+  paidAt        DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+
+  transaction Transaction @relation(fields: [transactionId], references: [id])
 }
 
 model AIInsightCache {

@@ -114,6 +114,15 @@ export async function restockSize(req: AuthRequest, res: Response, next: NextFun
   }
 }
 
+export async function getRestockHistory(req: AuthRequest, res: Response, next: NextFunction) {
+  try {
+    const history = await productsService.getRestockHistory(req.ownerId!, req.params.id)
+    res.json({ success: true, data: history })
+  } catch (err) {
+    next(err)
+  }
+}
+
 export async function getLowStockProducts(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     const products = await productsService.getLowStockProducts(req.ownerId!)

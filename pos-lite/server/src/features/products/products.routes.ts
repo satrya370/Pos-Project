@@ -47,6 +47,7 @@ router.post('/:id/sizes/:sizeId/restock', validate(restockSizeSchema), productsC
 // Static routes — must be BEFORE /:id to avoid conflict
 router.get('/low-stock', productsController.getLowStockProducts)
 router.get('/stock-summary', productsController.getStockSummary)
+router.get('/:id/restock-history', productsController.getRestockHistory)
 
 // Product routes
 router.get('/', productsController.getProducts)

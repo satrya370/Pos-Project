@@ -13,6 +13,8 @@ import authRoutes from './features/auth/auth.routes.js'
 import productsRoutes from './features/products/products.routes.js'
 import transactionsRoutes from './features/transactions/transactions.routes.js'
 import reportsRoutes from './features/reports/reports.routes.js'
+import suppliersRoutes from './features/suppliers/suppliers.routes.js'
+import categoriesRoutes from './features/categories/categories.routes.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -37,6 +39,8 @@ app.use('/api/auth', authRoutes)
 app.use('/api/products', productsRoutes)
 app.use('/api/transactions', transactionsRoutes)
 app.use('/api/reports', reportsRoutes)
+app.use('/api/suppliers', suppliersRoutes)
+app.use('/api/categories', categoriesRoutes)
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   if (err instanceof AppError) {
