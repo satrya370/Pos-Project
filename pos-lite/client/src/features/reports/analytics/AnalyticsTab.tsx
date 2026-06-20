@@ -45,7 +45,7 @@ export function AnalyticsTab() {
           <button
             key={p}
             onClick={() => setPeriod(p)}
-            className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
+            className={`px-3 py-2 text-sm rounded-lg font-medium transition-colors min-h-[40px] ${
               period === p
                 ? 'bg-primary text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -61,7 +61,7 @@ export function AnalyticsTab() {
       ) : !data ? null : (
         <div className="space-y-6">
           {/* Phase 1 grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {/* Top Kategori */}
             <Card className="p-5">
               <p className="text-xs text-gray-400 mb-3">({periodLabel})</p>

@@ -140,11 +140,11 @@ export function DebtsPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pelanggan</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Sudah Dibayar</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Sudah Dibayar</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Sisa</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
@@ -156,13 +156,16 @@ export function DebtsPage() {
                   const outstanding = getOutstanding(t)
                   return (
                     <tr key={t.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-mono">{t.invoiceNumber}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{t.customerName || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
+                      <td className="hidden md:table-cell px-4 py-3 text-sm font-mono">{t.invoiceNumber}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {t.customerName || '-'}
+                        <p className="text-xs text-gray-400 md:hidden">Invoice: {t.invoiceNumber}</p>
+                      </td>
+                      <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-500">
                         {format(new Date(t.createdAt), 'dd MMM yyyy', { locale: idLocale })}
                       </td>
-                      <td className="px-4 py-3 text-sm text-right font-medium">{formatPrice(t.totalAmount)}</td>
-                      <td className="px-4 py-3 text-sm text-right text-success">{formatPrice(alreadyPaid)}</td>
+                      <td className="hidden md:table-cell px-4 py-3 text-sm text-right font-medium">{formatPrice(t.totalAmount)}</td>
+                      <td className="hidden md:table-cell px-4 py-3 text-sm text-right text-success">{formatPrice(alreadyPaid)}</td>
                       <td className="px-4 py-3 text-sm text-right font-semibold text-warning">
                         {formatPrice(outstanding)}
                       </td>

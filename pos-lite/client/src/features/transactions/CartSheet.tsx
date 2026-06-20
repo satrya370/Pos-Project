@@ -43,9 +43,9 @@ export function CartSheet({
     <div className="fixed inset-0 z-50 lg:hidden">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[85vh] overflow-hidden flex flex-col">
+      <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[90vh] overflow-hidden flex flex-col pb-4">
         <div className="flex justify-center p-2">
-          <div className="w-10 h-1 bg-gray-300 rounded-full" />
+          <div className="w-10 h-1.5 bg-gray-300 rounded-full" />
         </div>
 
         <div className="flex items-center justify-between px-4 pb-3 border-b">

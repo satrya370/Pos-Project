@@ -178,10 +178,10 @@ export function CustomersPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Nama
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Telepon
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Email
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
@@ -195,13 +195,16 @@ export function CustomersPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4 text-gray-400 shrink-0" />
-                        <span className="font-medium text-gray-900">{customer.name}</span>
+                        <div>
+                          <span className="font-medium text-gray-900">{customer.name}</span>
+                          <p className="text-xs text-gray-400 md:hidden">{customer.phone || '-'}</p>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-600">
                       {customer.phone || '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
+                    <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-600">
                       {customer.email || '-'}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -209,6 +212,7 @@ export function CustomersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="p-2"
                           onClick={() => setDetailCustomer(customer.id)}
                           title="Lihat Detail"
                         >
@@ -217,6 +221,7 @@ export function CustomersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="p-2"
                           onClick={() => handleOpenEdit(customer)}
                           title="Edit"
                         >
@@ -225,6 +230,7 @@ export function CustomersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="p-2"
                           onClick={() => setDeleteConfirm(customer.id)}
                           title="Hapus"
                         >

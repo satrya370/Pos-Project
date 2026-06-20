@@ -86,14 +86,14 @@ export function ReportsPage() {
             <button
               onClick={() => handleExport('daily', 'pdf')}
               disabled={isExporting}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              className="inline-flex items-center gap-1 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
             >
               <FileDown className="h-4 w-4" /> PDF
             </button>
             <button
               onClick={() => handleExport('daily', 'excel')}
               disabled={isExporting}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              className="inline-flex items-center gap-1 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
             >
               <FileSpreadsheet className="h-4 w-4" /> Excel
             </button>
@@ -103,7 +103,7 @@ export function ReportsPage() {
             <div className="flex justify-center py-12"><Spinner size="lg" /></div>
           ) : dailyReport ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 <Card className="p-4">
                   <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
                     <BarChart3 className="h-4 w-4" />
@@ -155,7 +155,7 @@ export function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="weekly" className="space-y-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 flex-wrap">
             <label className="text-sm font-medium text-gray-700">Minggu:</label>
             <input
               type="week"
@@ -169,7 +169,7 @@ export function ReportsPage() {
             <div className="flex justify-center py-12"><Spinner size="lg" /></div>
           ) : weeklyReport ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                 <Card className="p-4">
                   <div className="text-gray-500 text-sm mb-1">Total Penjualan</div>
                   <p className="text-xl font-bold">{formatPrice(weeklyReport.totalSales)}</p>
@@ -227,14 +227,14 @@ export function ReportsPage() {
             <button
               onClick={() => handleExport('monthly', 'pdf')}
               disabled={isExporting}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              className="inline-flex items-center gap-1 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
             >
               <FileDown className="h-4 w-4" /> PDF
             </button>
             <button
               onClick={() => handleExport('monthly', 'excel')}
               disabled={isExporting}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              className="inline-flex items-center gap-1 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
             >
               <FileSpreadsheet className="h-4 w-4" /> Excel
             </button>
@@ -244,7 +244,7 @@ export function ReportsPage() {
             <div className="flex justify-center py-12"><Spinner size="lg" /></div>
           ) : monthlyReport ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                 <Card className="p-4">
                   <div className="text-gray-500 text-sm mb-1">Total Penjualan</div>
                   <p className="text-xl font-bold">{formatPrice(monthlyReport.totalSales)}</p>

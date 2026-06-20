@@ -128,9 +128,9 @@ export function SuppliersPage() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telepon</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alamat</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telepon</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alamat</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
                 </tr>
               </thead>
@@ -140,17 +140,21 @@ export function SuppliersPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <Truck className="h-4 w-4 text-gray-400 shrink-0" />
-                        <span className="font-medium text-gray-900">{supplier.name}</span>
+                        <div>
+                          <span className="font-medium text-gray-900">{supplier.name}</span>
+                          <p className="text-xs text-gray-400 md:hidden">{supplier.phone || '-'}</p>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{supplier.phone || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{supplier.contact || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600 max-w-[200px] truncate">{supplier.address || '-'}</td>
+                    <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-600">{supplier.phone || '-'}</td>
+                    <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-600">{supplier.contact || '-'}</td>
+                    <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-600 max-w-[200px] truncate">{supplier.address || '-'}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="p-2"
                           onClick={() => handleOpenEdit(supplier)}
                         >
                           <Edit className="h-4 w-4" />
@@ -158,6 +162,7 @@ export function SuppliersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="p-2"
                           onClick={() => setDeleteConfirm(supplier.id)}
                         >
                           <Trash2 className="h-4 w-4 text-danger" />

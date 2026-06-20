@@ -85,7 +85,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
                         onClick={() => handleVariantClick(vn)}
                         disabled={variantStock === 0}
                         className={clsx(
-                          'px-2 py-1 text-xs rounded border transition-colors',
+                          'px-2 py-2 text-xs rounded border transition-colors',
                           variantStock === 0
                             ? 'border-gray-200 text-gray-300 cursor-not-allowed'
                             : 'border-primary text-primary hover:bg-primary hover:text-white'
@@ -108,7 +108,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
                     <button
                       type="button"
                       onClick={() => setSelectedVariant(null)}
-                      className="text-xs text-gray-400 hover:text-gray-600 leading-none"
+                      className="px-2 py-1 text-sm text-gray-400 hover:text-gray-600 leading-none"
                     >
                       ✕
                     </button>
@@ -123,7 +123,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
                         onClick={() => handleSizeClick(size)}
                         disabled={size.stock === 0}
                         className={clsx(
-                          'px-2 py-1 text-xs rounded border transition-colors touch-target',
+                          'px-2 py-2 text-xs rounded border transition-colors touch-target',
                           size.stock === 0
                             ? 'border-gray-200 text-gray-300 cursor-not-allowed'
                             : 'border-primary text-primary hover:bg-primary hover:text-white active:bg-primary-700'

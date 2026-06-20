@@ -42,12 +42,12 @@ export function ProfitMarginTable({ data }: Props) {
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
             <th className={thClass}>Produk</th>
-            <th className={thClass}>Kategori</th>
+            <th className={`${thClass} hidden md:table-cell`}>Kategori</th>
             <th className={`${thClass} text-right`} onClick={() => handleSort('marginPercent')}>
               Margin% <SortIcon k="marginPercent" />
             </th>
             <th className={`${thClass} text-right`}>Harga Jual</th>
-            <th className={`${thClass} text-right`}>Harga Beli</th>
+            <th className={`${thClass} text-right hidden lg:table-cell`}>Harga Beli</th>
             <th className={`${thClass} text-right`} onClick={() => handleSort('totalProfit')}>
               Total Profit <SortIcon k="totalProfit" />
             </th>
@@ -66,7 +66,7 @@ export function ProfitMarginTable({ data }: Props) {
                 className={isNoData ? 'bg-gray-50' : isLowMargin ? 'bg-red-50' : ''}
               >
                 <td className="px-3 py-2 font-medium text-gray-800">{row.productName}</td>
-                <td className="px-3 py-2 text-gray-500">{row.categoryName}</td>
+                <td className="px-3 py-2 text-gray-500 hidden md:table-cell">{row.categoryName}</td>
                 <td className="px-3 py-2 text-right">
                   {row.marginPercent !== null ? (
                     <span className={`font-semibold ${isLowMargin ? 'text-red-600' : 'text-green-600'}`}>
@@ -77,7 +77,7 @@ export function ProfitMarginTable({ data }: Props) {
                   )}
                 </td>
                 <td className="px-3 py-2 text-right text-gray-600">{formatRp(row.avgSellingPrice)}</td>
-                <td className="px-3 py-2 text-right text-gray-600">
+                <td className="px-3 py-2 text-right text-gray-600 hidden lg:table-cell">
                   {row.costPrice > 0 ? formatRp(row.costPrice) : <span className="text-gray-400">-</span>}
                 </td>
                 <td className="px-3 py-2 text-right font-medium text-gray-800">{formatRp(row.totalProfit)}</td>

@@ -33,7 +33,7 @@ export function Modal({ isOpen, onClose, title, children, className, ...props }:
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-safe"
       onClick={(e) => {
         if (e.target === overlayRef.current) onClose()
       }}
@@ -51,7 +51,7 @@ export function Modal({ isOpen, onClose, title, children, className, ...props }:
             <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
             <button
               onClick={onClose}
-              className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              className="p-2.5 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <X className="h-5 w-5 text-gray-500" />
             </button>

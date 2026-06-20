@@ -50,7 +50,7 @@ export function DeadStockTable({ period: _period }: { period: number }) {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Produk</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Kategori</th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Stok</th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Terakhir Terjual</th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Hari Stagnan</th>
@@ -62,7 +62,7 @@ export function DeadStockTable({ period: _period }: { period: number }) {
                 return (
                   <tr key={row.productId} className={isCritical ? 'bg-red-50' : ''}>
                     <td className="px-3 py-2 font-medium text-gray-800">{row.productName}</td>
-                    <td className="px-3 py-2 text-gray-500">{row.categoryName}</td>
+                    <td className="px-3 py-2 text-gray-500 hidden md:table-cell">{row.categoryName}</td>
                     <td className="px-3 py-2 text-right text-gray-700">{row.currentStock}</td>
                     <td className="px-3 py-2 text-right text-gray-500">
                       {row.lastSoldAt

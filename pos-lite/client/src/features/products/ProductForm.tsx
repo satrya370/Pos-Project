@@ -250,14 +250,14 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Gambar Produk</label>
         {imagePreview ? (
-          <div className="relative inline-block">
+          <div className="relative inline-block max-w-full">
             <img src={imagePreview} alt="Preview" className="w-32 h-32 object-cover rounded-lg border" />
             <button type="button" onClick={() => { setImageFile(null); setImagePreview(null) }} className="absolute -top-2 -right-2 bg-danger text-white rounded-full p-1">
               <X className="h-4 w-4" />
             </button>
           </div>
         ) : (
-          <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary">
+          <label className="flex flex-col items-center justify-center w-32 h-32 max-w-full border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary">
             <ImageIcon className="h-8 w-8 text-gray-400" />
             <span className="text-xs text-gray-500 mt-1">Upload</span>
             <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
@@ -269,7 +269,7 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
       <Input label="SKU" placeholder="Masukkan SKU (opsional)" {...register('sku')} />
       <Input label="Deskripsi" placeholder="Deskripsi produk (opsional)" {...register('description')} />
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <Input label="Harga Beli" type="number" min={0} error={errors.purchasePrice?.message}
           {...register('purchasePrice', { valueAsNumber: true, min: { value: 0, message: 'Minimal 0' } })} />
         <Input label="Harga Jual" type="number" min={0} error={errors.sellingPrice?.message}
@@ -411,7 +411,7 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
 
       {/* ── Section C: Grid Preview ── */}
       {showGrid && (
-        <div className="border border-gray-200 rounded-lg p-3">
+        <div className="border border-gray-200 rounded-lg p-3 min-w-0">
           <p className="text-xs font-medium text-gray-500 mb-2">Preview Kombinasi (stok via Restock)</p>
           <div className="overflow-x-auto">
             <table className="text-xs w-auto">
@@ -464,7 +464,7 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
         </div>
       )}
 
-      <div className="flex justify-end gap-3 pt-4 border-t sticky bottom-0 bg-white">
+      <div className="flex justify-end gap-3 pt-4 px-1 border-t sticky bottom-0 bg-white">
         <Button type="button" variant="secondary" onClick={onSuccess}>Batal</Button>
         <Button type="submit" isLoading={isLoading}>{product ? 'Simpan' : 'Tambah'}</Button>
       </div>

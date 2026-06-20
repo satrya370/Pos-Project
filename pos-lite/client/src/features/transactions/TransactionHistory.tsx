@@ -97,11 +97,11 @@ export function TransactionHistory() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pelanggan</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Items</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pelanggan</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Items</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Profit</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Profit</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
                 </tr>
@@ -109,14 +109,19 @@ export function TransactionHistory() {
               <tbody className="divide-y divide-gray-200">
                 {filteredTransactions.map((tx) => (
                   <tr key={tx.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-mono">{tx.invoiceNumber}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{tx.customerName || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    <td className="px-4 py-3 text-sm font-mono">
+                      {tx.invoiceNumber}
+                      <p className="text-xs text-gray-400 md:hidden font-sans">
+                        {format(new Date(tx.createdAt), 'dd MMM yyyy', { locale: id })}
+                      </p>
+                    </td>
+                    <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-700">{tx.customerName || '-'}</td>
+                    <td className="hidden md:table-cell px-4 py-3 text-sm text-gray-500">
                       {format(new Date(tx.createdAt), 'dd MMM yyyy, HH:mm', { locale: id })}
                     </td>
-                    <td className="px-4 py-3 text-sm text-right">{tx.itemsCount}</td>
+                    <td className="hidden md:table-cell px-4 py-3 text-sm text-right">{tx.itemsCount}</td>
                     <td className="px-4 py-3 text-sm text-right font-medium">{formatPrice(tx.totalAmount)}</td>
-                    <td className="px-4 py-3 text-sm text-right text-success">{formatPrice(tx.profit)}</td>
+                    <td className="hidden md:table-cell px-4 py-3 text-sm text-right text-success">{formatPrice(tx.profit)}</td>
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1 flex-wrap">
                         <Badge variant={tx.status === 'completed' ? 'success' : 'danger'}>
@@ -127,11 +132,11 @@ export function TransactionHistory() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setSelectedTransaction(tx.id)}>
+                        <Button variant="ghost" size="sm" className="p-2" onClick={() => setSelectedTransaction(tx.id)}>
                           <Eye className="h-4 w-4" />
                         </Button>
                         {tx.status === 'completed' && (
-                          <Button variant="ghost" size="sm" onClick={() => setVoidConfirm(tx.id)}>
+                          <Button variant="ghost" size="sm" className="p-2" onClick={() => setVoidConfirm(tx.id)}>
                             <Ban className="h-4 w-4 text-danger" />
                           </Button>
                         )}

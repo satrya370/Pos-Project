@@ -74,7 +74,7 @@ export function CartPanel({
                     max={100}
                     value={item.discountPercent}
                     onChange={(e) => onSetDiscount(item.id, Number(e.target.value))}
-                    className="w-14 text-xs border border-gray-300 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    className="w-14 text-xs border border-gray-300 rounded px-1.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary/30"
                   />
                   <span className="text-xs text-gray-400">%</span>
                   {item.discountPercent > 0 && (
@@ -87,20 +87,20 @@ export function CartPanel({
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                  className="w-7 h-7 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100"
+                  className="w-9 h-9 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100"
                 >
                   <Minus className="h-3 w-3" />
                 </button>
                 <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
                 <button
                   onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                  className="w-7 h-7 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100"
+                  className="w-9 h-9 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-100"
                 >
                   <Plus className="h-3 w-3" />
                 </button>
                 <button
                   onClick={() => onRemoveItem(item.id)}
-                  className="w-7 h-7 rounded flex items-center justify-center text-danger hover:bg-red-50"
+                  className="w-9 h-9 rounded flex items-center justify-center text-danger hover:bg-red-50"
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>
@@ -123,7 +123,7 @@ export function CartPanel({
         </div>
 
         {/* Kasbon */}
-        <div className="flex items-center justify-between py-2 border-t border-gray-100">
+        <div className="flex items-center justify-between py-2 border-t border-gray-100 min-h-[44px]">
           <span className="text-sm font-medium text-gray-700">Kasbon (bayar nanti)</span>
           <button
             type="button"
@@ -156,7 +156,7 @@ export function CartPanel({
         </div>
 
         <Button
-          className="w-full"
+          className="w-full min-h-[48px]"
           size="lg"
           isLoading={isSubmitting}
           disabled={items.length === 0}

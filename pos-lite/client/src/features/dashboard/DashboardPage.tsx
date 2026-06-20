@@ -73,7 +73,7 @@ export function DashboardPage() {
         </div>
         <button
           onClick={() => navigate('/transactions')}
-          className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm flex-shrink-0"
         >
           <Plus className="h-4 w-4" />
           Catat Penjualan
@@ -90,7 +90,7 @@ export function DashboardPage() {
       <DailyTargetCard todaySales={daily?.totalSales ?? 0} />
 
       {/* Chart + Stock Alerts */}
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 p-4">
           <h3 className="font-semibold text-gray-800 mb-4">Penjualan 7 Hari Terakhir</h3>
           {isLoadingChart ? (
@@ -108,7 +108,7 @@ export function DashboardPage() {
       </div>
 
       {/* Recent Transactions + Stock Summary */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-4 md:gap-6">
         <RecentTransactions />
         <StockSummaryCard />
       </div>

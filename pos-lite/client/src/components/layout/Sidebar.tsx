@@ -49,7 +49,7 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
       {/* Mobile menu button */}
       <button
         onClick={onToggle}
-        className="fixed top-4 left-4 z-50 p-2 bg-gray-900 text-white rounded-lg lg:hidden hover:bg-gray-700 transition-colors"
+        className="fixed top-4 left-4 z-50 p-3 bg-gray-900 text-white rounded-lg lg:hidden hover:bg-gray-700 transition-colors"
       >
         {isExpanded ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
@@ -98,7 +98,7 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
               }}
               className={({ isActive }) =>
                 clsx(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                  'flex items-center gap-3 px-3 py-3 rounded-lg transition-colors',
                   isActive
                     ? 'bg-primary text-white'
                     : 'text-gray-300 hover:bg-gray-700 hover:text-white'
@@ -122,7 +122,7 @@ export function Sidebar({ isExpanded, onToggle }: SidebarProps) {
           <button
             onClick={logout}
             className={clsx(
-              'flex items-center gap-3 w-full px-3 py-2.5 rounded-lg',
+              'flex items-center gap-3 w-full px-3 py-3 rounded-lg',
               'text-gray-300 hover:bg-gray-700 hover:text-white transition-colors'
             )}
           >

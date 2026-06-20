@@ -114,7 +114,7 @@ export function ProductsPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
@@ -152,15 +152,15 @@ export function ProductsPage() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produk</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Harga Beli</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Harga Jual</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Varian</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ukuran</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">SKU</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Harga Beli</th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Harga Jual</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Varian</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Ukuran</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Stok</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Berat</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kadaluarsa</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Berat</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Kadaluarsa</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Kategori</th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
                 </tr>
               </thead>
@@ -187,10 +187,10 @@ export function ProductsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{product.sku || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-500">{formatPrice(product.purchasePrice)}</td>
-                      <td className="px-4 py-3 text-sm text-right font-medium">{formatPrice(product.sellingPrice)}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-sm text-gray-500 hidden md:table-cell">{product.sku || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-500 hidden md:table-cell">{formatPrice(product.purchasePrice)}</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium hidden md:table-cell">{formatPrice(product.sellingPrice)}</td>
+                      <td className="px-4 py-3 hidden md:table-cell">
                         {variantChips.length === 0 ? (
                           <span className="text-gray-400 text-xs">-</span>
                         ) : (
@@ -204,7 +204,7 @@ export function ProductsPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{getSizesLabel(product)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 hidden md:table-cell">{getSizesLabel(product)}</td>
                       <td className="px-4 py-3 text-sm text-right">
                         <div className="flex flex-col items-end gap-0.5">
                           <Badge variant={oos === 'full' ? 'danger' : 'default'}>
@@ -214,19 +214,19 @@ export function ProductsPage() {
                           {oos === 'partial' && <span className="text-xs text-yellow-600">Sebagian Habis</span>}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
+                      <td className="px-4 py-3 text-sm text-gray-500 hidden md:table-cell">
                         {product.weight != null ? `${product.weight} ${product.weightUnit || ''}` : '-'}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 hidden md:table-cell">
                         <ExpiryBadge expiryDate={product.expiryDate} />
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{product.category?.name || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500 hidden md:table-cell">{product.category?.name || '-'}</td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button onClick={() => setRestockProduct(product)} className="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Restock">
+                          <button onClick={() => setRestockProduct(product)} className="p-2 text-green-600 hover:bg-green-50 rounded" title="Restock">
                             <RefreshCw className="h-4 w-4" />
                           </button>
-                          <button onClick={() => setHistoryProduct(product)} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded" title="Riwayat Restock">
+                          <button onClick={() => setHistoryProduct(product)} className="p-2 text-blue-500 hover:bg-blue-50 rounded" title="Riwayat Restock">
                             <History className="h-4 w-4" />
                           </button>
                           <Button variant="ghost" size="sm" onClick={() => { setEditProduct(product); setShowForm(true) }}>
