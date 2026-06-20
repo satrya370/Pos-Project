@@ -16,12 +16,15 @@ export function useCart() {
             : i
         )
       }
+      const sizeParts = []
+      if (size.variantName) sizeParts.push(size.variantName)
+      if (size.name !== 'Default') sizeParts.push(size.name)
       return [...prev, {
         id: `${product.id}-${size.id}`,
         productId: product.id,
         productSizeId: size.id,
         productName: product.name,
-        size: size.name,
+        size: sizeParts.join(' / ') || 'Default',
         price: product.sellingPrice,
         quantity: 1,
         discountPercent: 0,
